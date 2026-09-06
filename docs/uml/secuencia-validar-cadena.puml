@@ -1,0 +1,223 @@
+@startuml secuencia-validar-cadena
+title Secuencia — Validar una cadena y recorrerla paso a paso
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam roundCorner 6
+skinparam ParticipantPadding 12
+skinparam BoxPadding 10
+skinparam sequence {
+  ArrowColor #4A4A48
+  LifeLineBorderColor #9A9791
+  LifeLineBackgroundColor #F4F2EE
+  ParticipantBorderColor #5A5A57
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantFontColor #1C1B1A
+  ActorBorderColor #5A5A57
+  ActorBackgroundColor #FFFFFF
+  GroupBorderColor #9A9791
+  GroupBackgroundColor #F4F2EE
+  GroupHeaderFontColor #1C1B1A
+  DividerBackgroundColor #F0EEEA
+  DividerBorderColor #9A9791
+}
+skinparam note {
+  BackgroundColor #F4F2EE
+  BorderColor #9A9791
+  FontColor #1C1B1A
+}
+
+actor Usuario
+
+box "afd-desktop — vista" #FDFCFB
+  participant CajonEjecucion
+  participant CintaCadena
+  participant LienzoAutomata
+  participant PanelMatrizTransiciones
+end box
+
+box "afd-desktop — controlador" #FAF8F5
+  participant ControladorSimulacion
+  participant ControladorAutomata
+end box
+
+box "afd-core" #F0EEEA
+  participant SimuladorAFD
+  participant AutomataFinitoDeterminista
+  participant FuncionTransicion
+end box
+
+== 1. Disparo de la simulación ==
+
+Usuario -> CajonEjecucion : escribe la cadena "1001"
+note right of CajonEjecucion
+  El DocumentFilter descarta en el acto
+  cualquier carácter fuera de Σ y cada
+  edición llama a simulacion.cancelar().
+end note
+
+Usuario -> CajonEjecucion : pulsa VALIDAR
+activate CajonEjecucion
+CajonEjecucion -> ControladorAutomata : esValido()
+activate ControladorAutomata
+ControladorAutomata --> CajonEjecucion : true
+deactivate ControladorAutomata
+
+CajonEjecucion -> ControladorSimulacion : simular("1001")
+activate ControladorSimulacion
+
+ControladorSimulacion -> ControladorAutomata : automataActual()
+activate ControladorAutomata
+ControladorAutomata --> ControladorSimulacion : automata
+deactivate ControladorAutomata
+ControladorSimulacion -> ControladorSimulacion : pausar()
+
+== 2. Cálculo completo de la traza (una sola vez) ==
+
+ControladorSimulacion -> SimuladorAFD : simular(automata, "1001")
+activate SimuladorAFD
+
+SimuladorAFD -> AutomataFinitoDeterminista : estadoInicial()
+activate AutomataFinitoDeterminista
+AutomataFinitoDeterminista --> SimuladorAFD : qPar
+deactivate AutomataFinitoDeterminista
+
+loop para cada símbolo de la cadena  (indice = 0 .. longitud-1)
+
+  SimuladorAFD -> AutomataFinitoDeterminista : alfabeto().contiene(simbolo)
+  activate AutomataFinitoDeterminista
+  AutomataFinitoDeterminista --> SimuladorAFD : true
+  deactivate AutomataFinitoDeterminista
+
+  SimuladorAFD -> AutomataFinitoDeterminista : transitar(actual, simbolo)
+  activate AutomataFinitoDeterminista
+  AutomataFinitoDeterminista -> FuncionTransicion : transitar(actual, simbolo)
+  activate FuncionTransicion
+  FuncionTransicion -> FuncionTransicion : delta.get(new ClaveTransicion(actual, simbolo))
+  FuncionTransicion --> AutomataFinitoDeterminista : Optional<Estado>
+  deactivate FuncionTransicion
+  AutomataFinitoDeterminista --> SimuladorAFD : Optional<Estado>
+  deactivate AutomataFinitoDeterminista
+
+  SimuladorAFD -> SimuladorAFD : pasos.add(new PasoEjecucion(\n  indice, actual, simbolo, destino,\n  cadenaLeida, cadenaRestante, esUltimo))
+  SimuladorAFD -> SimuladorAFD : actual = destino
+end
+
+SimuladorAFD -> AutomataFinitoDeterminista : esDeAceptacion(actual)
+activate AutomataFinitoDeterminista
+AutomataFinitoDeterminista --> SimuladorAFD : true
+deactivate AutomataFinitoDeterminista
+
+SimuladorAFD --> ControladorSimulacion : ResultadoSimulacion\n(aceptada, estadoFinal, pasos, motivoRechazo)
+deactivate SimuladorAFD
+
+note over ControladorSimulacion, SimuladorAFD #FFF8E8
+  **La traza queda precalculada aquí y solo aquí.**
+  ControladorSimulacion guarda el ResultadoSimulacion completo
+  y pone paso = PASO_INICIAL (-1: posado en el estado inicial,
+  sin leer nada). Navegar entre pasos NO vuelve a llamar a
+  SimuladorAFD: solo mueve el índice sobre la lista ya calculada.
+end note
+
+ControladorSimulacion -> ControladorSimulacion : paso = PASO_INICIAL
+ControladorSimulacion -> ControladorSimulacion : notificar()
+deactivate ControladorSimulacion
+deactivate CajonEjecucion
+
+== 3. Avance de un paso — sincronización cuádruple ==
+
+Usuario -> CajonEjecucion : pulsa el botón Siguiente
+activate CajonEjecucion
+CajonEjecucion -> ControladorSimulacion : siguiente()
+deactivate CajonEjecucion
+activate ControladorSimulacion
+ControladorSimulacion -> ControladorSimulacion : irAPaso(paso + 1)
+note right of ControladorSimulacion
+  Solo se mueve el índice.
+  pasoActual() devuelve
+  resultado.pasos().get(paso).
+end note
+ControladorSimulacion -> ControladorSimulacion : notificar()
+
+par notificación a los cuatro observadores, en el mismo ciclo de repintado
+
+  ControladorSimulacion -> CintaCadena : sincronizar()
+  activate CintaCadena
+  CintaCadena -> ControladorSimulacion : paso()
+  CintaCadena -> CintaCadena : resalta la celda del símbolo actual\ny anima el cursor triangular (120 ms)
+  deactivate CintaCadena
+
+else
+
+  ControladorSimulacion -> CajonEjecucion : actualizar()
+  activate CajonEjecucion
+  CajonEjecucion -> ControladorSimulacion : puedeAvanzar() / puedeRetroceder() / hayVeredicto()
+  CajonEjecucion -> CajonEjecucion : habilita el transporte y la banda
+  deactivate CajonEjecucion
+
+else
+
+  ControladorSimulacion -> LienzoAutomata : sincronizarConSimulacion()
+  activate LienzoAutomata
+  LienzoAutomata -> ControladorSimulacion : estadoActual()
+  LienzoAutomata -> ControladorSimulacion : pasoActual()
+  LienzoAutomata -> LienzoAutomata : nodoActivo  = nodosPorNombre.get(...)\naristaActiva = buscarArista(origen, destino, simbolo)
+  LienzoAutomata -> LienzoAutomata : repaint()\n→ halo naranja en el nodo, arista a 3f\n   y rótulo "Paso 2 de 4 — leo '0' en qPar, voy a qImpar"
+  deactivate LienzoAutomata
+
+else
+
+  ControladorSimulacion -> PanelMatrizTransiciones : tabla.repaint()
+  activate PanelMatrizTransiciones
+  PanelMatrizTransiciones -> ControladorSimulacion : pasoActual()
+  PanelMatrizTransiciones -> PanelMatrizTransiciones : esCeldaEnCurso(fila, columna)\n→ tiñe la celda (estadoOrigen, símbolo)
+  deactivate PanelMatrizTransiciones
+
+end
+deactivate ControladorSimulacion
+
+note over CintaCadena, PanelMatrizTransiciones #FFF8E8
+  notificar() recorre la lista **observadores** de forma secuencial
+  dentro de un único evento del EDT, así que los cuatro repaint()
+  se resuelven en el mismo fotograma: lienzo, cinta, matriz y
+  rótulo nunca quedan desfasados un paso.
+end note
+
+== 4. Veredicto (al llegar al último paso) ==
+
+alt hayVeredicto() y resultado.aceptada()
+
+  ControladorSimulacion -> LienzoAutomata : (mismo notificar)
+  LienzoAutomata -> LienzoAutomata : anillo exterior VERDE de 4px\nalrededor del estado final
+  ControladorSimulacion -> CajonEjecucion : (mismo notificar)
+  CajonEjecucion -> ControladorSimulacion : mensajeVeredicto()
+  ControladorSimulacion --> CajonEjecucion : "Cadena ACEPTADA — terminó en qPar,\nque es de aceptación"
+  CajonEjecucion -> Usuario : banda verde a lo ancho del cajón
+
+else hayVeredicto() y resultado.rechazada()
+
+  ControladorSimulacion -> LienzoAutomata : (mismo notificar)
+  LienzoAutomata -> LienzoAutomata : anillo exterior ROJO de 4px\nalrededor del estado final
+  ControladorSimulacion -> CajonEjecucion : (mismo notificar)
+  CajonEjecucion -> ControladorSimulacion : mensajeVeredicto()
+  note right of ControladorSimulacion
+    explicacionRechazo() traduce el MotivoRechazo real:
+    ESTADO_NO_ACEPTACION → "terminó en X, que no es de aceptación"
+    SIMBOLO_FUERA_ALFABETO → "el símbolo 'c' no pertenece a Σ"
+    TRANSICION_NO_DEFINIDA → "δ(X, c) no está definida"
+  end note
+  ControladorSimulacion --> CajonEjecucion : "Cadena RECHAZADA — …"
+  CajonEjecucion -> Usuario : banda roja con el motivo
+
+end
+
+note across #FFF8E8
+  **Regla dura:** si el usuario edita el autómata o la cadena con una
+  simulación en curso, ControladorAutomata.reconstruir() invoca
+  alCancelarSimulacion → ControladorSimulacion.cancelar(), que borra el
+  resultado, vuelve a paso = -1 y limpia los cuatro resaltados.
+  Nunca queda visible el resaltado de un autómata que ya cambió.
+end note
+@enduml

@@ -1,0 +1,145 @@
+@startuml casos-de-uso
+title Diagrama de casos de uso — Plano Sintáctico
+
+left to right direction
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam roundCorner 6
+skinparam ArrowColor #4A4A48
+skinparam actor {
+  BackgroundColor #FFFFFF
+  BorderColor #5A5A57
+  FontColor #1C1B1A
+}
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #5A5A57
+  FontColor #1C1B1A
+  StereotypeFontColor #6B6862
+}
+skinparam rectangle {
+  BackgroundColor #FAFAF9
+  BorderColor #9A9791
+  FontColor #1C1B1A
+}
+skinparam note {
+  BackgroundColor #F4F2EE
+  BorderColor #9A9791
+  FontColor #1C1B1A
+}
+
+actor "Usuario\n(estudiante o docente)" as Usuario
+
+rectangle "Simulador de AFD  «Plano Sintáctico»" {
+
+  rectangle "Definición del autómata" as G1 {
+    usecase "Definir el alfabeto" as UC01
+    usecase "Insertar estado" as UC02
+    usecase "Renombrar estado" as UC03
+    usecase "Marcar estado inicial" as UC04
+    usecase "Marcar estado de aceptación" as UC05
+    usecase "Crear transición" as UC06
+    usecase "Editar símbolos de una transición" as UC07
+    usecase "Eliminar estado" as UC08
+    usecase "Eliminar transición" as UC09
+  }
+
+  rectangle "Validación" as G2 {
+    usecase "Validar el autómata\n(en cada cambio)" as UC10
+    usecase "Verificar determinismo" as UC11
+    usecase "Completar con estado trampa" as UC12
+  }
+
+  rectangle "Simulación" as G3 {
+    usecase "Validar una cadena" as UC13
+    usecase "Navegar la simulación\npaso a paso" as UC14
+    usecase "Reproducir automáticamente" as UC15
+    usecase "Ajustar velocidad" as UC16
+  }
+
+  rectangle "Manipulación de la vista" as G4 {
+    usecase "Mover estados" as UC17
+    usecase "Zoom y paneo" as UC18
+    usecase "Ajustar a la vista" as UC19
+    usecase "Cambiar de tema" as UC20
+    usecase "Mostrar u ocultar la matriz" as UC21
+  }
+
+  rectangle "Persistencia y salida" as G5 {
+    usecase "Cargar autómata de ejemplo" as UC22
+    usecase "Exportar imagen PNG" as UC23
+    usecase "Exportar traza de texto" as UC24
+    usecase "Deshacer y rehacer" as UC25
+  }
+}
+
+Usuario --> UC01
+Usuario --> UC02
+Usuario --> UC03
+Usuario --> UC04
+Usuario --> UC05
+Usuario --> UC06
+Usuario --> UC07
+Usuario --> UC08
+Usuario --> UC09
+Usuario --> UC12
+Usuario --> UC13
+Usuario --> UC14
+Usuario --> UC15
+Usuario --> UC16
+Usuario --> UC17
+Usuario --> UC18
+Usuario --> UC19
+Usuario --> UC20
+Usuario --> UC21
+Usuario --> UC22
+Usuario --> UC23
+Usuario --> UC24
+Usuario --> UC25
+
+UC13 ..> UC10 : <<include>>
+UC06 ..> UC11 : <<include>>
+UC12 ..> UC10 : <<extend>>\n[existe E07_TRANSICION_FALTANTE]
+
+note right of UC10
+  No lo dispara el usuario: ControladorAutomata
+  llama a ValidadorAutomata.validar() dentro de
+  reconstruir(), es decir tras **cada** mutación
+  del modelo. Por eso no lleva flecha del actor.
+end note
+
+note bottom of UC13
+  <<include>> obligatorio: CajonEjecucion.validar()
+  y ControladorSimulacion.simular() comprueban
+  controlador.esValido() antes de simular.
+  Con un AFD inválido el cajón queda deshabilitado.
+end note
+
+note bottom of UC11
+  <<include>>: SelectorSimbolos consulta
+  ControladorAutomata.conflictosDeterminismo()
+  al marcar cada símbolo y otra vez al aplicar.
+  Si hay conflicto pide confirmación explícita;
+  nunca crea el no-determinismo en silencio.
+end note
+
+note right of UC12
+  <<extend>>: el botón solo se habilita cuando
+  puedeCompletarConEstadoTrampa() es cierto, es
+  decir cuando la validación reportó el código
+  E07_TRANSICION_FALTANTE (δ no es total).
+end note
+
+note as Alcance
+  Casos de uso derivados de la funcionalidad
+  realmente implementada. **No hay** guardar ni
+  abrir archivos del autómata: la persistencia
+  se limita a cargar ejemplos predefinidos y a
+  exportar PNG y traza .txt.
+end note
+
+Alcance .. G5
+@enduml

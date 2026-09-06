@@ -1,0 +1,148 @@
+@startuml secuencia-insertar-estado
+title Secuencia — Insertar un estado con la herramienta ESTADO
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam roundCorner 6
+skinparam ParticipantPadding 12
+skinparam BoxPadding 10
+skinparam sequence {
+  ArrowColor #4A4A48
+  LifeLineBorderColor #9A9791
+  LifeLineBackgroundColor #F4F2EE
+  ParticipantBorderColor #5A5A57
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantFontColor #1C1B1A
+  ActorBorderColor #5A5A57
+  ActorBackgroundColor #FFFFFF
+  GroupBorderColor #9A9791
+  GroupBackgroundColor #F4F2EE
+  GroupHeaderFontColor #1C1B1A
+}
+skinparam note {
+  BackgroundColor #F4F2EE
+  BorderColor #9A9791
+  FontColor #1C1B1A
+}
+
+actor Usuario
+
+box "afd-desktop — vista" #FDFCFB
+  participant LienzoAutomata
+  participant CampoTexto
+end box
+
+box "afd-desktop — controlador" #FAF8F5
+  participant ControladorAutomata
+  participant PilaComandos
+  participant ModeloEdicion
+end box
+
+box "afd-core" #F0EEEA
+  participant ValidadorAutomata
+end box
+
+== 1. Vista previa fantasma ==
+
+Usuario -> LienzoAutomata : herramienta E (ESTADO)
+
+loop mientras el cursor se mueve por el lienzo
+  Usuario -> LienzoAutomata : mouseMoved
+  activate LienzoAutomata
+  LienzoAutomata -> LienzoAutomata : punteroMundo = aCoordenadasDelMundo(p)
+  LienzoAutomata -> ModeloEdicion : siguienteNombreLibre()
+  activate ModeloEdicion
+  ModeloEdicion --> LienzoAutomata : "q2"
+  deactivate ModeloEdicion
+  LienzoAutomata -> LienzoAutomata : repaint() → pintarFantasma()\ncírculo al 40 % de opacidad con el nombre previsto
+  deactivate LienzoAutomata
+end
+
+== 2. Clic e inserción ==
+
+Usuario -> LienzoAutomata : mousePressed en zona vacía
+activate LienzoAutomata
+LienzoAutomata -> LienzoAutomata : atender(mundo, evento)\ncase ESTADO, nodoEn(mundo) == null
+LienzoAutomata -> LienzoAutomata : insertarYEditar(mundo, false)
+LienzoAutomata -> ControladorAutomata : insertarEstado(x, y, aceptacion = false)
+activate ControladorAutomata
+
+ControladorAutomata -> ModeloEdicion : siguienteNombreLibre()
+activate ModeloEdicion
+ModeloEdicion -> ModeloEdicion : busca el **menor índice libre**:\nprueba "q0", "q1", "q2"… hasta uno no usado
+ModeloEdicion --> ControladorAutomata : "q2"
+deactivate ModeloEdicion
+
+ControladorAutomata -> PilaComandos : ejecutar(new ComandoInstantanea("Insertar estado q2", …))
+activate PilaComandos
+PilaComandos -> ControladorAutomata : capturar() → antes
+PilaComandos -> ModeloEdicion : agregarEstado("q2")
+PilaComandos -> ModeloEdicion : establecerAceptacion("q2", false)
+PilaComandos -> ControladorAutomata : posiciones.put("q2", new Punto(x, y))
+PilaComandos -> ControladorAutomata : capturar() → despues
+PilaComandos -> PilaComandos : hechos.push(comando)
+deactivate PilaComandos
+
+== 3. Revalidación y redibujo ==
+
+ControladorAutomata -> ControladorAutomata : reconstruir()
+activate ControladorAutomata
+ControladorAutomata -> ModeloEdicion : construirAutomata()
+activate ModeloEdicion
+ModeloEdicion --> ControladorAutomata : AutomataFinitoDeterminista
+deactivate ModeloEdicion
+ControladorAutomata -> ValidadorAutomata : validar(automata)
+activate ValidadorAutomata
+ValidadorAutomata --> ControladorAutomata : ResultadoValidacion
+deactivate ValidadorAutomata
+deactivate ControladorAutomata
+
+note right of ValidadorAutomata #FFF8E8
+  El estado recién insertado **no** se marca como inicial:
+  ModeloEdicion.agregarEstado() nunca asigna q0 solo.
+  Por eso, mientras el usuario no pulse la herramienta I,
+  la validación reporta E01_SIN_ESTADO_INICIAL.
+end note
+
+ControladorAutomata -> ControladorAutomata : notificar()
+ControladorAutomata -> LienzoAutomata : sincronizarDesdeControlador()
+activate LienzoAutomata
+LienzoAutomata -> LienzoAutomata : reconstruye nodos y nodosPorNombre,\nrecalcularAristas(), ajustarAVista() si procede
+deactivate LienzoAutomata
+ControladorAutomata --> LienzoAutomata : "q2"
+deactivate ControladorAutomata
+
+== 4. Edición del nombre en el sitio ==
+
+LienzoAutomata -> LienzoAutomata : nodo = nodosPorNombre.get("q2")
+LienzoAutomata -> CampoTexto : new CampoTexto("nombre", 8) sobre el nodo
+activate CampoTexto
+LienzoAutomata -> LienzoAutomata : add(editorNombre, 0)\nnombreEnEdicion = "q2"  (el nodo deja de pintar su rótulo)
+deactivate LienzoAutomata
+
+Usuario -> CampoTexto : escribe "qPar" y pulsa Intro
+CampoTexto -> LienzoAutomata : cerrarEditorNombre(confirmar = true)
+deactivate CampoTexto
+activate LienzoAutomata
+LienzoAutomata -> ControladorAutomata : renombrarEstado("q2", "qPar")
+activate ControladorAutomata
+
+alt el nombre está libre y no está en blanco
+  ControladorAutomata -> PilaComandos : ejecutar(new ComandoInstantanea("Renombrar q2 como qPar", …))
+  PilaComandos -> ModeloEdicion : renombrarEstado("q2", "qPar")\n(reescribe Q, F, q0 y todas las claves de δ)
+  ControladorAutomata -> ControladorAutomata : reconstruir() + notificar()
+  ControladorAutomata --> LienzoAutomata : true
+else nombre vacío o ya existente
+  ControladorAutomata --> LienzoAutomata : false
+  LienzoAutomata -> Usuario : Toolkit.beep(), se conserva "q2"
+end
+deactivate ControladorAutomata
+deactivate LienzoAutomata
+
+note across #FFF8E8
+  Insertar y renombrar son **dos comandos distintos** en la pila:
+  Ctrl+Z deshace primero el renombrado y después la inserción.
+end note
+@enduml

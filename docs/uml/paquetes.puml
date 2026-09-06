@@ -1,0 +1,103 @@
+@startuml paquetes
+title Diagrama de paquetes — dos módulos Maven, dependencia en un solo sentido
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam roundCorner 6
+skinparam ArrowColor #4A4A48
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #5A5A57
+  FontColor #1C1B1A
+}
+skinparam component {
+  BackgroundColor #FAFAF9
+  BorderColor #5A5A57
+  FontColor #1C1B1A
+}
+skinparam note {
+  BackgroundColor #F4F2EE
+  BorderColor #9A9791
+  FontColor #1C1B1A
+}
+
+package "afd-parent  «pom»" as padre #FFFFFF {
+
+  package "afd-desktop  «jar»" as desktop #F7F5F2 {
+    package "com.unbosque.afd.desktop" as raizDesktop {
+      class App <<main>>
+    }
+    package "…desktop.vista" as vista {
+    }
+    package "…desktop.componentes" as componentes {
+    }
+    package "…desktop.controlador" as controlador {
+    }
+    package "…desktop.controlador.comandos" as comandos {
+    }
+    package "…desktop.render" as render {
+    }
+  }
+
+  package "afd-core  «jar»" as core #F0EEEA {
+    package "com.unbosque.afd.core.modelo" as modelo {
+    }
+    package "com.unbosque.afd.core.logica" as logica {
+    }
+  }
+}
+
+' ─── dependencias internas de afd-desktop ───
+raizDesktop ..> vista
+vista ..> componentes
+vista ..> controlador
+vista ..> render
+controlador ..> comandos
+controlador ..> render
+componentes ..> render
+
+' ─── la única dependencia entre módulos ───
+desktop ==> core : <<use>>\nafd-desktop depende de afd-core
+
+' ─── dependencias concretas hacia el núcleo ───
+controlador ..> logica : ValidadorAutomata\nSimuladorAFD
+controlador ..> modelo
+render ..> modelo
+render ..> logica : DistribuidorEstados
+vista ..> logica : ConstructorEjemplos
+vista ..> modelo
+logica ..> modelo
+
+note right of core
+  **afd-core no conoce a nadie.**
+  Sus únicos imports son java.util y
+  sus propios paquetes. Cero java.awt,
+  cero javax.swing, cero librerías externas.
+
+  Consecuencia práctica: los 75 tests del
+  núcleo corren sin entorno gráfico, y la
+  lógica del AFD podría reutilizarse en una
+  interfaz web o de consola sin tocar
+  una línea.
+end note
+
+note bottom of desktop
+  afd-desktop declara a afd-core como
+  dependencia en su pom.xml.
+  **No existe la flecha inversa**: ninguna clase de
+  afd-core nombra a ninguna de afd-desktop.
+  Maven lo garantiza — el núcleo compila
+  solo, sin el módulo de interfaz.
+end note
+
+note as Prohibida
+  PROHIBIDO:  afd-core --> afd-desktop
+  Esta dependencia **no existe y no debe existir**.
+  Es lo que separa el modelo formal del autómata
+  de su representación en pantalla.
+end note
+
+core .. Prohibida
+@enduml

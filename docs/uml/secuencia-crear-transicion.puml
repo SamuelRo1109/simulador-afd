@@ -1,0 +1,175 @@
+@startuml secuencia-crear-transicion
+title Secuencia — Crear una transición arrastrando, con verificación de determinismo
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam roundCorner 6
+skinparam ParticipantPadding 12
+skinparam BoxPadding 10
+skinparam sequence {
+  ArrowColor #4A4A48
+  LifeLineBorderColor #9A9791
+  LifeLineBackgroundColor #F4F2EE
+  ParticipantBorderColor #5A5A57
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantFontColor #1C1B1A
+  ActorBorderColor #5A5A57
+  ActorBackgroundColor #FFFFFF
+  GroupBorderColor #9A9791
+  GroupBackgroundColor #F4F2EE
+  GroupHeaderFontColor #1C1B1A
+}
+skinparam note {
+  BackgroundColor #F4F2EE
+  BorderColor #9A9791
+  FontColor #1C1B1A
+}
+
+actor Usuario
+
+box "afd-desktop — vista" #FDFCFB
+  participant LienzoAutomata
+  participant SelectorSimbolos
+end box
+
+box "afd-desktop — controlador" #FAF8F5
+  participant ControladorAutomata
+  participant PilaComandos
+  participant ComandoInstantanea
+  participant ModeloEdicion
+end box
+
+box "afd-core" #F0EEEA
+  participant ValidadorAutomata
+end box
+
+== 1. Arrastre con línea elástica ==
+
+Usuario -> LienzoAutomata : herramienta T (TRANSICION)
+Usuario -> LienzoAutomata : mousePressed sobre qPar
+activate LienzoAutomata
+LienzoAutomata -> LienzoAutomata : atender(mundo, evento)\ncase TRANSICION → origenTransicion = nodo\npuntoElastico = mundo
+deactivate LienzoAutomata
+
+loop mientras el usuario arrastra
+  Usuario -> LienzoAutomata : mouseDragged
+  activate LienzoAutomata
+  LienzoAutomata -> LienzoAutomata : puntoElastico = aCoordenadasDelMundo(p)
+  LienzoAutomata -> LienzoAutomata : repaint() → pintarLineaElastica()\nlínea punteada naranja con dashPhase animado
+  deactivate LienzoAutomata
+end
+
+Usuario -> LienzoAutomata : mouseReleased sobre qImpar
+activate LienzoAutomata
+LienzoAutomata -> LienzoAutomata : destino = nodoEn(mundo)
+
+alt destino == null  (se soltó en zona vacía)
+  LienzoAutomata -> LienzoAutomata : origenTransicion = null\npuntoElastico = null → se cancela
+else destino != null  (incluye destino == origen → bucle)
+  LienzoAutomata -> SelectorSimbolos : new SelectorSimbolos(controlador, "qPar", "qImpar", …)
+  activate SelectorSimbolos
+  SelectorSimbolos -> ModeloEdicion : simbolosEntre("qPar", "qImpar")
+  activate ModeloEdicion
+  ModeloEdicion --> SelectorSimbolos : símbolos ya definidos → chips premarcados
+  deactivate ModeloEdicion
+  LienzoAutomata -> LienzoAutomata : ubica el selector por fuera de\nlos dos nodos y lo añade al lienzo
+  deactivate LienzoAutomata
+end
+
+== 2. Verificación de determinismo ==
+
+Usuario -> SelectorSimbolos : marca el símbolo '0'
+SelectorSimbolos -> SelectorSimbolos : actualizarConflictos()
+SelectorSimbolos -> ControladorAutomata : conflictosDeterminismo("qPar", "qImpar", {'0'})
+activate ControladorAutomata
+ControladorAutomata -> ModeloEdicion : destino("qPar", '0')
+activate ModeloEdicion
+ModeloEdicion --> ControladorAutomata : destino actual (o null)
+deactivate ModeloEdicion
+ControladorAutomata --> SelectorSimbolos : List<ConflictoDeterminismo>
+deactivate ControladorAutomata
+
+Usuario -> SelectorSimbolos : pulsa Aplicar
+SelectorSimbolos -> SelectorSimbolos : confirmar()
+SelectorSimbolos -> ControladorAutomata : conflictosDeterminismo(...)  (segunda comprobación)
+activate ControladorAutomata
+ControladorAutomata --> SelectorSimbolos : conflictos
+deactivate ControladorAutomata
+
+alt hay conflicto y el usuario NO confirma el reemplazo
+
+  SelectorSimbolos -> SelectorSimbolos : confirmarReemplazo(conflictos)\nJOptionPane "δ(qPar,0) ya va a q1 …"
+  SelectorSimbolos -> Usuario : "Reemplazar" / "Cancelar"
+  Usuario --> SelectorSimbolos : Cancelar
+  SelectorSimbolos -> LienzoAutomata : alCancelar.run() → cerrarSelector()
+  deactivate SelectorSimbolos
+  note over ModeloEdicion #FFF8E8
+    **El modelo no cambia.** No se crea Comando,
+    no se revalida y δ(qPar,0) conserva su destino
+    anterior. El no-determinismo nunca se crea en
+    silencio: hace falta una confirmación explícita.
+  end note
+
+else no hay conflicto, o el usuario elige "Reemplazar"
+
+  SelectorSimbolos -> LienzoAutomata : alAplicar.accept({'0'})
+  activate LienzoAutomata
+  LienzoAutomata -> LienzoAutomata : cerrarSelector()
+  LienzoAutomata -> ControladorAutomata : establecerSimbolosArista("qPar", "qImpar", {'0'})
+  deactivate LienzoAutomata
+  activate ControladorAutomata
+
+  == 3. Comando, revalidación y redibujo ==
+
+  ControladorAutomata -> ComandoInstantanea : new ComandoInstantanea("Definir δ(qPar, ·) → qImpar",\n  captor, restaurador, mutacion)
+  ControladorAutomata -> PilaComandos : ejecutar(comando)
+  activate PilaComandos
+
+  PilaComandos -> ComandoInstantanea : ejecutar()
+  activate ComandoInstantanea
+  ComandoInstantanea -> ControladorAutomata : capturar() → antes
+  ComandoInstantanea -> ModeloEdicion : establecerTransicion("qPar", '0', "qImpar")
+  activate ModeloEdicion
+  ModeloEdicion --> ComandoInstantanea
+  deactivate ModeloEdicion
+  ComandoInstantanea -> ControladorAutomata : capturar() → despues
+  deactivate ComandoInstantanea
+
+  PilaComandos -> PilaComandos : hechos.push(comando)\nrecorta a PROFUNDIDAD = 50\ndeshechos.clear()
+  deactivate PilaComandos
+
+  ControladorAutomata -> ControladorAutomata : reconstruir()
+  activate ControladorAutomata
+  ControladorAutomata -> ModeloEdicion : construirAutomata()
+  activate ModeloEdicion
+  ModeloEdicion --> ControladorAutomata : AutomataFinitoDeterminista
+  deactivate ModeloEdicion
+  ControladorAutomata -> ValidadorAutomata : validar(automata)
+  activate ValidadorAutomata
+  ValidadorAutomata -> ValidadorAutomata : validarEstadoInicial, validarNombresDeEstado,\nvalidarAlfabeto, validarDeterminismo, validarTotalidad,\nvalidarDestinos, validarAlcanzabilidad
+  ValidadorAutomata --> ControladorAutomata : ResultadoValidacion
+  deactivate ValidadorAutomata
+  ControladorAutomata -> ControladorAutomata : alCancelarSimulacion.run()\n(cancela cualquier simulación en curso)
+  deactivate ControladorAutomata
+
+  ControladorAutomata -> ControladorAutomata : notificar()
+  ControladorAutomata -> LienzoAutomata : sincronizarDesdeControlador()
+  deactivate ControladorAutomata
+  activate LienzoAutomata
+  LienzoAutomata -> LienzoAutomata : reconstruye NodoGrafico desde automataActual()\ny posiciones()
+  LienzoAutomata -> LienzoAutomata : recalcularAristas()\n→ CalculadoraGeometria.calcularAristas(...)
+  LienzoAutomata -> Usuario : arco dibujado con su etiqueta
+  deactivate LienzoAutomata
+
+end
+
+note across #FFF8E8
+  El determinismo se sigue verificando además en **afd-core**:
+  ValidadorAutomata.validarDeterminismo() recorre δ y emite
+  E06_NO_DETERMINISTA si un par (estado, símbolo) tuviera más de
+  un destino. La comprobación del selector es una barrera de
+  usabilidad; la del núcleo es la garantía formal.
+end note
+@enduml

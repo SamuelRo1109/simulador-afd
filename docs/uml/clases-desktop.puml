@@ -1,0 +1,658 @@
+@startuml clases-desktop
+title Diagrama de clases — módulo afd-desktop (MVC + patrón Comando)
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam roundCorner 6
+skinparam ArrowColor #4A4A48
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #5A5A57
+  FontColor #1C1B1A
+  AttributeFontColor #3A3A38
+  StereotypeFontColor #6B6862
+}
+skinparam package {
+  BackgroundColor #FAFAF9
+  BorderColor #9A9791
+  FontColor #1C1B1A
+}
+skinparam note {
+  BackgroundColor #F4F2EE
+  BorderColor #9A9791
+  FontColor #1C1B1A
+}
+
+package "afd-core  «módulo externo»" as nucleo #F0EEEA {
+  class AutomataFinitoDeterminista
+  class ResultadoValidacion
+  class ResultadoSimulacion
+  class PasoEjecucion
+  class Estado
+  class Punto
+  class Transicion
+  class ValidadorAutomata <<utility>>
+  class SimuladorAFD <<utility>>
+  class DistribuidorEstados <<utility>>
+  class ConstructorEjemplos <<utility>>
+}
+
+' ══════════════════ MODELO ══════════════════
+package "controlador  «Modelo»" as capaModelo {
+
+  class ModeloEdicion {
+    - {static} NOMBRE_POR_DEFECTO : String = "Autómata sin título"
+    - simbolos : List<Character>
+    - estados : List<String>
+    - estadosAceptacion : Set<String>
+    - transiciones : Map<ClaveEdicion, String>
+    - nombre : String
+    - estadoInicial : String
+    --
+    + simbolos() : List<Character>
+    + estados() : List<String>
+    + estadoInicial() : String
+    + nombre() : String
+    + establecerNombre(nuevoNombre : String) : void
+    + esAceptacion(estado : String) : boolean
+    + esInicial(estado : String) : boolean
+    + contieneEstado(estado : String) : boolean
+    + contieneSimbolo(simbolo : char) : boolean
+    + destino(estado : String, simbolo : char) : String
+    + estaVacio() : boolean
+    + simbolosEntre(origen : String, destino : String) : List<Character>
+    + salientesDe(estado : String) : List<Transicion>
+    + entrantesA(estado : String) : List<Transicion>
+    + gradoDe(estado : String) : int
+    + siguienteNombreLibre() : String
+    + agregarSimbolo(simbolo : char) : boolean
+    + quitarSimbolo(simbolo : char) : void
+    + agregarEstado(estado : String) : boolean
+    + eliminarEstado(estado : String) : void
+    + renombrarEstado(anterior : String, nuevo : String) : boolean
+    + establecerInicial(estado : String) : void
+    + establecerAceptacion(estado : String, aceptacion : boolean) : void
+    + alternarAceptacion(estado : String) : void
+    + establecerTransicion(estado : String, simbolo : char, destino : String) : void
+    + eliminarArista(origen : String, destino : String) : void
+    + limpiar() : void
+    + cargarDesde(automata : AutomataFinitoDeterminista) : void
+    + instantanea() : Datos
+    + restaurar(datos : Datos) : void
+    + construirAutomata() : AutomataFinitoDeterminista
+  }
+
+  class ClaveEdicion <<record>> {
+    + estado : String
+    + simbolo : char
+  }
+
+  class Datos <<record>> {
+    + nombre : String
+    + simbolos : List<Character>
+    + estados : List<String>
+    + estadosAceptacion : Set<String>
+    + transiciones : Map<ClaveEdicion, String>
+    + estadoInicial : String
+  }
+}
+
+' ══════════════════ CONTROLADOR ══════════════════
+package "controlador  «Controlador»" as capaControlador {
+
+  class ControladorAutomata {
+    - {static} RADIO_DISTRIBUCION : double = 0.34
+    - modelo : ModeloEdicion
+    - posiciones : Map<String, Punto>
+    - pila : PilaComandos
+    - observadores : List<Runnable>
+    - automataActual : AutomataFinitoDeterminista
+    - validacionActual : ResultadoValidacion
+    - herramienta : Herramienta
+    - seleccion : Seleccion
+    - tamanoLienzo : Dimension
+    - alCancelarSimulacion : Runnable
+    - alReencuadrar : Runnable
+    - movimientoEnCurso : Instantanea
+    --
+    + modelo() : ModeloEdicion
+    + automataActual() : AutomataFinitoDeterminista
+    + validacionActual() : ResultadoValidacion
+    + posiciones() : Map<String, Punto>
+    + pila() : PilaComandos
+    + agregarObservador(observador : Runnable) : void
+    + establecerCancelacionDeSimulacion(accion : Runnable) : void
+    + establecerReencuadre(accion : Runnable) : void
+    + establecerTamanoLienzo(tamano : Dimension) : void
+    + herramienta() : Herramienta
+    + establecerHerramienta(nueva : Herramienta) : void
+    + seleccion() : Seleccion
+    + seleccionar(nueva : Seleccion) : void
+    + esValido() : boolean
+    + puedeCompletarConEstadoTrampa() : boolean
+    + insertarEstado(x : double, y : double, aceptacion : boolean) : String
+    + alternarAceptacion(estado : String) : void
+    + establecerAceptacion(estado : String, aceptacion : boolean) : void
+    + marcarInicial(estado : String) : void
+    + eliminarEstado(estado : String) : void
+    + renombrarEstado(anterior : String, nuevo : String) : boolean
+    + eliminarArista(origen : String, destino : String) : void
+    + conflictosDeterminismo(origen : String, destino : String, simbolos : Collection<Character>) : List<ConflictoDeterminismo>
+    + establecerSimbolosArista(origen : String, destino : String, simbolos : Set<Character>) : void
+    + establecerTransicion(estado : String, simbolo : char, destino : String) : void
+    + agregarSimbolo(texto : String) : boolean
+    + quitarSimbolo(simbolo : char) : void
+    + establecerNombre(nombre : String) : void
+    + iniciarMovimiento() : void
+    + actualizarPosicion(estado : String, x : double, y : double) : void
+    + finalizarMovimiento(estado : String) : void
+    + reorganizarEnCirculo() : void
+    + nuevo() : void
+    + cargarEjemplo(ejemplo : AutomataFinitoDeterminista) : void
+    + completarConEstadoTrampa() : void
+    + deshacer() : boolean
+    + rehacer() : boolean
+    + estadoCulpable(hallazgo : ErrorValidacion) : Optional<String>
+    + sincronizar() : void
+    + estadosDelAutomata() : List<Estado>
+    - ejecutar(descripcion : String, mutacion : Runnable) : void
+    - registrar(comando : Comando) : void
+    - capturar() : Instantanea
+    - restaurar(instantanea : Instantanea) : void
+    - reconstruir() : void
+    - asignarPosicionesFaltantes() : void
+    - distribucionDeReserva(cantidad : int) : List<Punto>
+    - notificar() : void
+  }
+
+  class Instantanea <<record>> {
+    + datos : ModeloEdicion.Datos
+    + posiciones : Map<String, Punto>
+  }
+
+  class ConflictoDeterminismo <<record>> {
+    + simbolo : char
+    + destinoActual : String
+  }
+
+  class ControladorSimulacion {
+    + {static} VELOCIDAD_POR_DEFECTO : int = 700
+    + {static} PASO_INICIAL : int = -1
+    - controlador : ControladorAutomata
+    - observadores : List<Runnable>
+    - temporizador : javax.swing.Timer
+    - resultado : ResultadoSimulacion
+    - automataSimulado : AutomataFinitoDeterminista
+    - cadena : String
+    - paso : int
+    --
+    + agregarObservador(observador : Runnable) : void
+    + simular(nuevaCadena : String) : void
+    + hayResultado() : boolean
+    + resultado() : ResultadoSimulacion
+    + cadena() : String
+    + paso() : int
+    + totalPasos() : int
+    + pasoActual() : PasoEjecucion
+    + estadoActual() : Estado
+    + hayVeredicto() : boolean
+    + puedeAvanzar() : boolean
+    + puedeRetroceder() : boolean
+    + irAPaso(nuevoPaso : int) : void
+    + siguiente() : void
+    + anterior() : void
+    + inicio() : void
+    + fin() : void
+    + reiniciar() : void
+    + reproducir() : void
+    + pausar() : void
+    + alternarReproduccion() : void
+    + reproduciendo() : boolean
+    + establecerVelocidad(milisegundos : int) : void
+    + velocidad() : int
+    + cancelar() : void
+    + descripcionPaso() : String
+    + mensajeVeredicto() : String
+    + explicacionRechazo() : String
+    + traza() : String
+    + recorrido() : String
+    - avanzarAutomaticamente() : void
+    - notificar() : void
+  }
+
+  enum Herramienta {
+    SELECCIONAR
+    ESTADO
+    ACEPTACION
+    INICIAL
+    TRANSICION
+    BORRAR
+    MANO
+    --
+    + etiqueta() : String
+    + atajo() : char
+    + descripcion() : String
+    + insertaEstados() : boolean
+  }
+
+  class Seleccion <<record>> {
+    + tipo : Tipo
+    + estado : String
+    + origen : String
+    + destino : String
+    --
+    + {static} NINGUNA : Seleccion
+    + {static} deEstado(estado : String) : Seleccion
+    + {static} deArista(origen : String, destino : String) : Seleccion
+    + esEstado(nombre : String) : boolean
+    + esArista(nombreOrigen : String, nombreDestino : String) : boolean
+    + vacia() : boolean
+  }
+}
+
+' ══════════════════ PATRÓN COMANDO ══════════════════
+package "controlador.comandos  «patrón Comando»" as capaComandos {
+
+  interface Comando <<interface>> {
+    + ejecutar() : void
+    + deshacer() : void
+    + descripcion() : String
+  }
+
+  class ComandoInstantanea<T> {
+    - descripcion : String
+    - captor : Supplier<T>
+    - restaurador : Consumer<T>
+    - mutacion : Runnable
+    - antes : T
+    - despues : T
+    --
+    + ejecutar() : void
+    + deshacer() : void
+    + descripcion() : String
+  }
+
+  class ComandoDirecto<T> {
+    - descripcion : String
+    - antes : T
+    - despues : T
+    - restaurador : Consumer<T>
+    --
+    + ejecutar() : void
+    + deshacer() : void
+    + descripcion() : String
+  }
+
+  class PilaComandos {
+    + {static} PROFUNDIDAD : int = 50
+    - hechos : Deque<Comando>
+    - deshechos : Deque<Comando>
+    --
+    + ejecutar(comando : Comando) : void
+    + puedeDeshacer() : boolean
+    + puedeRehacer() : boolean
+    + deshacer() : String
+    + rehacer() : String
+    + limpiar() : void
+    + profundidadDeshacer() : int
+    + profundidadRehacer() : int
+  }
+}
+
+' ══════════════════ RENDER ══════════════════
+package "render" as capaRender {
+
+  class Tema {
+    + {static} INICIAL : Color = #2E9E5B
+    + {static} ACEPTACION : Color = #B5179E
+    + {static} ACTIVO : Color = #F97316
+    + {static} ACEPTADA : Color = #22A06B
+    + {static} RECHAZADA : Color = #D93025
+    + {static} ADVERTENCIA : Color = #E8A317
+    + {static} SELECCION : Color = #F97316
+    + {static} TINTA_SOBRE_ACENTO : Color = #1A1A19
+    + {static} GRAFITO : Tema
+    + {static} PAPEL : Tema
+    - {static} observadores : List<Runnable>
+    - {static} actual : Tema
+    - nombre : String
+    - oscuro : boolean
+    - lienzoFondo : Color
+    - lienzoReticula : Color
+    - panelFondo : Color
+    - panelElevado : Color
+    - panelBorde : Color
+    - textoPrimario : Color
+    - textoSecundario : Color
+    - estadoRelleno : Color
+    - estadoBorde : Color
+    - arista : Color
+    --
+    + {static} actual() : Tema
+    + {static} establecer(tema : Tema) : void
+    + {static} alternar() : void
+    + {static} agregarObservador(observador : Runnable) : void
+    + {static} refrescarArbol(raiz : Component) : void
+    + {static} mezclar(frente : Color, fondo : Color, opacidad : double) : Color
+    + {static} conAlfa(color : Color, alfa : double) : Color
+    + {static} aclarar(color : Color, cantidad : double) : Color
+    + nombre() : String
+    + esOscuro() : boolean
+    + lienzoFondo() : Color
+    + lienzoReticula() : Color
+    + panelFondo() : Color
+    + panelElevado() : Color
+    + panelBorde() : Color
+    + textoPrimario() : Color
+    + textoSecundario() : Color
+    + estadoRelleno() : Color
+    + estadoBorde() : Color
+    + arista() : Color
+    + luzSuperior() : Color
+    + sombraInferior() : Color
+    + grisNeutro() : Color
+    + desactivado(color : Color) : Color
+    + superficieDesactivada() : Color
+    + celdaSinDefinir() : Color
+    + pulgarDesplazamiento() : Color
+    + sobrevuelo() : Color
+  }
+
+  interface "Tema.Sensible" as TemaSensible <<interface>> {
+    + aplicarTema() : void
+  }
+
+  class NodoGrafico {
+    + {static} FUENTE_BASE : Font
+    + {static} RADIO_MINIMO : double = 30
+    + {static} MARGEN_TEXTO : double = 10
+    + {static} SEPARACION_ACEPTACION : double = 6
+    - estado : Estado
+    - radio : double
+    - x : double
+    - y : double
+    --
+    + NodoGrafico(estado : Estado, x : double, y : double)
+    + {static} radioPara(nombre : String) : double
+    + estado() : Estado
+    + nombre() : String
+    + x() : double
+    + y() : double
+    + radio() : double
+    + radioInterno() : double
+    + mover(nuevaX : double, nuevaY : double) : void
+    + centro() : Point2D.Double
+    + circulo() : Ellipse2D.Double
+    + circuloInterno() : Ellipse2D.Double
+    + contiene(punto : Point2D) : boolean
+  }
+
+  class AristaGrafica {
+    - nodoOrigen : NodoGrafico
+    - nodoDestino : NodoGrafico
+    - simbolos : List<Character>
+    - tipo : TipoArista
+    - forma : Shape
+    - punta : Shape
+    - puntoEtiqueta : Point2D
+    --
+    + nodoOrigen() : NodoGrafico
+    + nodoDestino() : NodoGrafico
+    + simbolos() : List<Character>
+    + tipo() : TipoArista
+    + forma() : Shape
+    + punta() : Shape
+    + puntoEtiqueta() : Point2D
+    + etiqueta() : String
+    + conecta(nombreOrigen : String, nombreDestino : String) : boolean
+    + transporta(simbolo : char) : boolean
+  }
+
+  enum TipoArista {
+    RECTA
+    CURVA
+    BUCLE
+  }
+
+  class CalculadoraGeometria <<utility>> {
+    + {static} LARGO_PUNTA : double = 14
+    + {static} APERTURA_PUNTA_GRADOS : double = 25
+    + {static} DESPLAZAMIENTO_CURVA_MINIMO : double = 45
+    + {static} FACTOR_DESPLAZAMIENTO_CURVA : double = 0.6
+    + {static} DESPLAZAMIENTO_ETIQUETA : double = 16
+    + {static} LARGO_FLECHA_INICIAL : double = 35
+    --
+    + {static} calcularAristas(automata : AutomataFinitoDeterminista, nodos : List<NodoGrafico>) : List<AristaGrafica>
+    + {static} desplazamientoCurva(origen : NodoGrafico, destino : NodoGrafico) : double
+    + {static} puntaDeFlecha(punta : Point2D, anguloTangente : double) : Shape
+    + {static} lineaEstadoInicial(nodo : NodoGrafico) : Line2D
+    + {static} lineaEstadoInicial(nodo : NodoGrafico, desplazamiento : double) : Line2D
+    + {static} puntaEstadoInicial(nodo : NodoGrafico) : Shape
+    + {static} puntaEstadoInicial(nodo : NodoGrafico, desplazamiento : double) : Shape
+    - {static} construirRecta(...) : AristaGrafica
+    - {static} construirCurva(...) : AristaGrafica
+    - {static} construirBucle(...) : AristaGrafica
+    - {static} recortarContraNodos(...) : QuadCurve2D
+  }
+
+  class DistribuidorLienzo <<utility>> {
+    + {static} SEPARACION_HORIZONTAL : double = 260
+    --
+    + {static} distribuir(cantidad : int, centroX : double, centroY : double, radio : double) : List<Punto>
+  }
+
+  class IconosApp <<utility>>
+  class Medidas <<utility>>
+  class MetricasTexto <<utility>>
+  class TipografiaApp <<utility>>
+  interface PintorIcono <<functional>>
+}
+
+' ══════════════════ VISTA ══════════════════
+package "vista  «Vista»" as capaVista {
+
+  class LienzoAutomata {
+    - controlador : ControladorAutomata
+    - nodos : List<NodoGrafico>
+    - nodosPorNombre : Map<String, NodoGrafico>
+    - vista : AffineTransform
+    - animacion : javax.swing.Timer
+    - automata : AutomataFinitoDeterminista
+    - aristas : List<AristaGrafica>
+    - simulacion : ControladorSimulacion
+    - vistaAjustadaPorUsuario : boolean
+    - nodoArrastrado : NodoGrafico
+    - puntoPaneo : Point2D
+    - punteroMundo : Point2D
+    - origenTransicion : NodoGrafico
+    - puntoElastico : Point2D
+    - espacioPresionado : boolean
+    - editorNombre : CampoTexto
+    - nombreEnEdicion : String
+    - selector : SelectorSimbolos
+    - nodoActivo : NodoGrafico
+    - aristaActiva : AristaGrafica
+    - nodoResultado : NodoGrafico
+    - resultadoAceptada : Boolean
+    --
+    + LienzoAutomata(controlador : ControladorAutomata)
+    + establecerSimulacion(nuevaSimulacion : ControladorSimulacion) : void
+    + establecerAlternarMatriz(accion : Runnable) : void
+    + establecerAlternarCajon(accion : Runnable) : void
+    + automata() : AutomataFinitoDeterminista
+    + nodos() : List<NodoGrafico>
+    + aristas() : List<AristaGrafica>
+    + vistaAjustadaPorUsuario() : boolean
+    + nodoActivo() : NodoGrafico
+    + aristaActiva() : AristaGrafica
+    + nodoResultado() : NodoGrafico
+    + puntoDePantalla(estado : String) : Point
+    + selectorAbierto() : SelectorSimbolos
+    + agregarSuperposicion(superposicion : JComponent) : void
+    + sincronizarDesdeControlador() : void
+    + recalcularAristas() : void
+    + acercar() : void
+    + alejar() : void
+    + reencuadrar() : void
+    + ajustarAVista() : void
+    + exportarPNG(archivo : File, escala : double, forzarPapel : boolean) : void
+    + pintarLienzo(g2 : Graphics2D, ancho : int, alto : int, tema : Tema) : void
+    - sincronizarConSimulacion() : void
+    - atender(mundo : Point2D, evento : MouseEvent) : void
+    - insertarYEditar(mundo : Point2D, aceptacion : boolean) : void
+    - abrirEditorNombre(nodo : NodoGrafico) : void
+    - abrirSelector(origen : NodoGrafico, destino : NodoGrafico) : void
+    - aplicarSimbolos(origen : String, destino : String, simbolos : Set<Character>) : void
+    - pintarNodos(g2 : Graphics2D, tema : Tema) : void
+    - pintarAristas(g2 : Graphics2D, tema : Tema) : void
+    - pintarRotuloPaso(g2 : Graphics2D) : void
+    - calcularLimites() : Rectangle2D
+  }
+
+  class VentanaPrincipal
+  class BarraSuperior
+  class RielHerramientas
+  class Inspector
+  class CajonEjecucion
+  class CintaCadena
+  class PanelMatrizTransiciones
+  class OverlayMatriz
+  class SelectorSimbolos
+  class TirillaPestanas
+}
+
+package "componentes  «widgets pintados a mano»" as capaComponentes {
+  class BotonHerramienta
+  class BotonAccion
+  class BotonIcono
+  class ChipSimbolo
+  class ChipAlternable
+  class ChipEstadoValidacion
+  class CasillaVerificacion
+  class CampoTexto
+  class TarjetaHallazgo
+  class PanelTarjeta
+  class DeslizadorVelocidad
+  class BarraDesplazamiento <<extends BasicScrollBarUI>>
+}
+
+' ─────────── relaciones internas ───────────
+ModeloEdicion +-- ClaveEdicion
+ModeloEdicion +-- Datos
+ControladorAutomata +-- Instantanea
+ControladorAutomata +-- ConflictoDeterminismo
+
+ControladorAutomata *-- "1" ModeloEdicion
+ControladorAutomata *-- "1" PilaComandos
+ControladorAutomata --> "1" Herramienta
+ControladorAutomata --> "1" Seleccion
+ControladorAutomata ..> DistribuidorLienzo
+ControladorSimulacion --> "1" ControladorAutomata
+Instantanea *-- "1" Datos
+
+Comando <|.. ComandoInstantanea
+Comando <|.. ComandoDirecto
+PilaComandos o-- "0..50" Comando
+ControladorAutomata ..> ComandoInstantanea : crea
+ControladorAutomata ..> ComandoDirecto : crea
+
+LienzoAutomata --> "1" ControladorAutomata
+LienzoAutomata --> "0..1" ControladorSimulacion
+LienzoAutomata *-- "0..*" NodoGrafico
+LienzoAutomata *-- "0..*" AristaGrafica
+LienzoAutomata ..> CalculadoraGeometria
+LienzoAutomata ..> Tema
+LienzoAutomata *-- "0..1" SelectorSimbolos
+NodoGrafico --> "1" Estado
+AristaGrafica --> "2" NodoGrafico
+AristaGrafica --> "1" TipoArista
+CalculadoraGeometria ..> AristaGrafica : produce
+DistribuidorLienzo ..> DistribuidorEstados : delega si n >= 4
+
+VentanaPrincipal *-- LienzoAutomata
+VentanaPrincipal *-- BarraSuperior
+VentanaPrincipal *-- RielHerramientas
+VentanaPrincipal *-- Inspector
+VentanaPrincipal *-- CajonEjecucion
+VentanaPrincipal *-- OverlayMatriz
+VentanaPrincipal *-- PanelMatrizTransiciones
+VentanaPrincipal --> ControladorAutomata
+VentanaPrincipal --> ControladorSimulacion
+OverlayMatriz *-- PanelMatrizTransiciones
+CajonEjecucion *-- CintaCadena
+Inspector *-- TirillaPestanas
+
+PanelTarjeta <|-- OverlayMatriz
+PanelTarjeta <|-- SelectorSimbolos
+
+Tema +-- TemaSensible
+TemaSensible <|.. capaComponentes
+TemaSensible <|.. BarraSuperior
+TemaSensible <|.. CajonEjecucion
+TemaSensible <|.. CintaCadena
+TemaSensible <|.. Inspector
+TemaSensible <|.. PanelMatrizTransiciones
+TemaSensible <|.. RielHerramientas
+TemaSensible <|.. TirillaPestanas
+
+' ─────────── dependencias hacia afd-core ───────────
+ModeloEdicion ..> AutomataFinitoDeterminista : construirAutomata()
+ControladorAutomata ..> ValidadorAutomata : validar()
+ControladorAutomata ..> ResultadoValidacion
+ControladorAutomata ..> Punto
+ControladorSimulacion ..> SimuladorAFD : simular()
+ControladorSimulacion ..> ResultadoSimulacion
+ControladorSimulacion ..> PasoEjecucion
+CalculadoraGeometria ..> AutomataFinitoDeterminista
+VentanaPrincipal ..> ConstructorEjemplos
+
+' ─────────── observadores ───────────
+ControladorAutomata "1" o-- "0..*" capaVista : observadores\n(Runnable)
+ControladorSimulacion "1" o-- "4" capaVista : observadores\n(Runnable)
+
+note top of capaComandos
+  **Patrón Comando (deshacer/rehacer)**
+  Toda mutación del autómata pasa por un Comando.
+  ControladorAutomata es el *invocador*; PilaComandos
+  guarda hasta PROFUNDIDAD = 50 comandos.
+  ComandoInstantanea captura una Instantanea antes y
+  después de correr la mutación; ComandoDirecto recibe
+  ambas ya hechas (lo usa el arrastre de nodos, cuyo
+  «antes» se captura al presionar el ratón).
+  No se usa javax.swing.undo.
+end note
+
+note right of ControladorSimulacion
+  Los cuatro observadores registrados son, en orden:
+  CintaCadena, CajonEjecucion, LienzoAutomata y
+  PanelMatrizTransiciones.
+  Es la **sincronización cuádruple**:
+  un solo notificar() por paso.
+end note
+
+note bottom of capaVista
+  **Vista**: solo pinta y traduce gestos a llamadas
+  del controlador. No muta el modelo directamente
+  ni consulta a afd-core salvo tipos de lectura.
+
+  LienzoAutomata es la excepción a Tema.Sensible:
+  no lo implementa porque lee Tema.actual() en cada
+  pintado. BarraDesplazamiento tampoco, porque es un
+  BasicScrollBarUI y no un JComponent.
+end note
+
+note as MVC
+  **MVC**
+  Modelo       ModeloEdicion (+ afd-core)
+  Vista        vista/ y componentes/
+  Controlador  ControladorAutomata, ControladorSimulacion
+
+  La vista se entera de los cambios por una lista de
+  Runnable (observadores), no por herencia ni por
+  PropertyChangeListener.
+end note
+
+MVC .. capaControlador
+@enduml

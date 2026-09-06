@@ -1,0 +1,321 @@
+@startuml clases-core
+title Diagrama de clases — módulo afd-core
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam roundCorner 6
+skinparam linetype ortho
+skinparam ArrowColor #4A4A48
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #5A5A57
+  FontColor #1C1B1A
+  AttributeFontColor #3A3A38
+  StereotypeFontColor #6B6862
+}
+skinparam package {
+  BackgroundColor #FAFAF9
+  BorderColor #9A9791
+  FontColor #1C1B1A
+}
+skinparam note {
+  BackgroundColor #F4F2EE
+  BorderColor #9A9791
+  FontColor #1C1B1A
+}
+
+package "com.unbosque.afd.core.modelo" as modelo {
+
+  class Alfabeto {
+    - simbolos : Set<Character>
+    + Alfabeto(simbolos : Collection<String>)
+    + {static} de(simbolos : String...) : Alfabeto
+    + {static} deCaracteres(simbolos : char...) : Alfabeto
+    + simbolos() : Set<Character>
+    + contiene(simbolo : char) : boolean
+    + estaVacio() : boolean
+    + tamano() : int
+  }
+
+  class Estado {
+    - nombre : String
+    - esInicial : boolean
+    - esAceptacion : boolean
+    + Estado(nombre : String, esInicial : boolean, esAceptacion : boolean)
+    + {static} de(nombre : String) : Estado
+    + {static} inicial(nombre : String) : Estado
+    + {static} aceptacion(nombre : String) : Estado
+    + {static} inicialYAceptacion(nombre : String) : Estado
+    + nombre() : String
+    + esInicial() : boolean
+    + esAceptacion() : boolean
+    + conInicial(nuevoValor : boolean) : Estado
+    + conAceptacion(nuevoValor : boolean) : Estado
+  }
+
+  class Transicion <<record>> {
+    + estadoOrigen : Estado
+    + simbolo : char
+    + estadoDestino : Estado
+    --
+    + clave() : ClaveTransicion
+  }
+
+  class ClaveTransicion <<record>> {
+    + estado : Estado
+    + simbolo : char
+  }
+
+  class FuncionTransicion {
+    - transiciones : List<Transicion>
+    - delta : Map<ClaveTransicion, Estado>
+    + FuncionTransicion(transiciones : Collection<Transicion>)
+    + {static} vacia() : FuncionTransicion
+    + transitar(estado : Estado, simbolo : char) : Optional<Estado>
+    + destinos(estado : Estado, simbolo : char) : List<Estado>
+    + estaDefinida(estado : Estado, simbolo : char) : boolean
+    + transiciones() : List<Transicion>
+    + mapa() : Map<ClaveTransicion, Estado>
+    + cantidad() : int
+  }
+
+  class AutomataFinitoDeterminista {
+    - nombre : String
+    - alfabeto : Alfabeto
+    - estados : Set<Estado>
+    - estadosDeclarados : List<Estado>
+    - funcionTransicion : FuncionTransicion
+    - estadoInicial : Estado
+    - estadosAceptacion : Set<Estado>
+    --
+    + {static} constructor() : Constructor
+    + {static} constructorDesde(automata : AutomataFinitoDeterminista) : Constructor
+    + nombre() : String
+    + alfabeto() : Alfabeto
+    + estados() : Set<Estado>
+    + estadosDeclarados() : List<Estado>
+    + funcionTransicion() : FuncionTransicion
+    + estadoInicial() : Estado
+    + estadosAceptacion() : Set<Estado>
+    + tieneEstadoInicial() : boolean
+    + esDeAceptacion(estado : Estado) : boolean
+    + contieneEstado(estado : Estado) : boolean
+    + buscarEstado(nombreEstado : String) : Optional<Estado>
+    + transitar(estado : Estado, simbolo : char) : Optional<Estado>
+  }
+
+  class Constructor <<static nested>> {
+    - nombre : String
+    - alfabeto : Alfabeto
+    - estados : List<Estado>
+    - definiciones : List<DefinicionTransicion>
+    - nombreEstadoInicial : String
+    - nombresAceptacion : Set<String>
+    --
+    + nombre(nombre : String) : Constructor
+    + alfabeto(alfabeto : Alfabeto) : Constructor
+    + alfabeto(simbolos : String...) : Constructor
+    + agregarEstado(estado : Estado) : Constructor
+    + agregarEstado(nombreEstado : String, esInicial : boolean, esAceptacion : boolean) : Constructor
+    + estados(nuevosEstados : Collection<Estado>) : Constructor
+    + agregarTransicion(transicion : Transicion) : Constructor
+    + agregarTransicion(origen : String, simbolo : char, destino : String) : Constructor
+    + transiciones(nuevasTransiciones : Collection<Transicion>) : Constructor
+    + estadoInicial(nombreEstado : String) : Constructor
+    + agregarEstadoAceptacion(nombreEstado : String) : Constructor
+    + construir() : AutomataFinitoDeterminista
+    - aplicarBanderas(estado : Estado) : Estado
+    - determinarEstadoInicial(conjunto : Set<Estado>) : Estado
+    - resolver(conjunto : Set<Estado>, nombreEstado : String) : Estado
+  }
+
+  class DefinicionTransicion <<private record>> {
+    + origen : String
+    + simbolo : char
+    + destino : String
+  }
+
+  class PasoEjecucion <<record>> {
+    + indice : int
+    + estadoOrigen : Estado
+    + simbolo : char
+    + estadoDestino : Estado
+    + cadenaLeida : String
+    + cadenaRestante : String
+    + esUltimo : boolean
+    --
+    + fallido() : boolean
+  }
+
+  class ResultadoSimulacion <<record>> {
+    + aceptada : boolean
+    + estadoFinal : Estado
+    + pasos : List<PasoEjecucion>
+    + motivoRechazo : MotivoRechazo
+    --
+    + cantidadPasos() : int
+    + rechazada() : boolean
+  }
+
+  class ErrorValidacion <<record>> {
+    + severidad : Severidad
+    + codigo : String
+    + mensaje : String
+    --
+    + {static} error(codigo : String, mensaje : String) : ErrorValidacion
+    + {static} advertencia(codigo : String, mensaje : String) : ErrorValidacion
+    + esError() : boolean
+    + esAdvertencia() : boolean
+  }
+
+  class ResultadoValidacion <<record>> {
+    + hallazgos : List<ErrorValidacion>
+    --
+    + {static} vacio() : ResultadoValidacion
+    + esValido() : boolean
+    + errores() : List<ErrorValidacion>
+    + advertencias() : List<ErrorValidacion>
+    + tieneAdvertencias() : boolean
+    + contieneCodigo(codigo : String) : boolean
+  }
+
+  class Punto <<record>> {
+    + x : double
+    + y : double
+  }
+
+  enum MotivoRechazo {
+    NINGUNO
+    ESTADO_NO_ACEPTACION
+    SIMBOLO_FUERA_ALFABETO
+    TRANSICION_NO_DEFINIDA
+  }
+
+  enum Severidad {
+    ERROR
+    ADVERTENCIA
+  }
+}
+
+package "com.unbosque.afd.core.logica" as logica {
+
+  class ValidadorAutomata <<utility>> {
+    + {static} CODIGO_SIN_ESTADO_INICIAL : String = "E01_SIN_ESTADO_INICIAL"
+    + {static} CODIGO_VARIOS_ESTADOS_INICIALES : String = "E02_VARIOS_ESTADOS_INICIALES"
+    + {static} CODIGO_NOMBRE_VACIO : String = "E03_NOMBRE_VACIO"
+    + {static} CODIGO_NOMBRE_DUPLICADO : String = "E04_NOMBRE_DUPLICADO"
+    + {static} CODIGO_ALFABETO_VACIO : String = "E05_ALFABETO_VACIO"
+    + {static} CODIGO_NO_DETERMINISTA : String = "E06_NO_DETERMINISTA"
+    + {static} CODIGO_TRANSICION_FALTANTE : String = "E07_TRANSICION_FALTANTE"
+    + {static} CODIGO_DESTINO_INEXISTENTE : String = "E08_DESTINO_INEXISTENTE"
+    + {static} CODIGO_ESTADO_INALCANZABLE : String = "A01_ESTADO_INALCANZABLE"
+    + {static} CODIGO_ACEPTACION_INALCANZABLE : String = "A02_ACEPTACION_INALCANZABLE"
+    + {static} NOMBRE_ESTADO_TRAMPA : String = "qTrampa"
+    --
+    + {static} validar(automata : AutomataFinitoDeterminista) : ResultadoValidacion
+    + {static} completarConEstadoTrampa(automata : AutomataFinitoDeterminista) : AutomataFinitoDeterminista
+    + {static} alcanzables(automata : AutomataFinitoDeterminista) : Set<Estado>
+    - {static} validarEstadoInicial(...) : void
+    - {static} validarNombresDeEstado(...) : void
+    - {static} validarAlfabeto(...) : void
+    - {static} validarDeterminismo(...) : void
+    - {static} validarTotalidad(...) : void
+    - {static} validarDestinos(...) : void
+    - {static} validarAlcanzabilidad(...) : void
+  }
+
+  class SimuladorAFD <<utility>> {
+    + {static} simular(automata : AutomataFinitoDeterminista, cadena : String) : ResultadoSimulacion
+    + {static} acepta(automata : AutomataFinitoDeterminista, cadena : String) : boolean
+  }
+
+  class DistribuidorEstados <<utility>> {
+    - {static} ANGULO_INICIAL : double = -PI/2
+    --
+    + {static} circular(cantidad : int, centroX : double, centroY : double, radio : double) : List<Punto>
+  }
+
+  class ConstructorEjemplos <<utility>> {
+    + {static} alfabetoBinario() : Alfabeto
+    + {static} cantidadParDeCeros() : AutomataFinitoDeterminista
+    + {static} contieneSubcadena00() : AutomataFinitoDeterminista
+    + {static} cantidadParDeUnos() : AutomataFinitoDeterminista
+    + {static} terminaEnCero() : AutomataFinitoDeterminista
+    + {static} todos() : List<AutomataFinitoDeterminista>
+  }
+}
+
+' ─── Composición: la quíntupla M = (Q, Σ, δ, q0, F) ───
+AutomataFinitoDeterminista *-- "1" Alfabeto : Σ
+AutomataFinitoDeterminista *-- "0..*" Estado : Q
+AutomataFinitoDeterminista *-- "1" FuncionTransicion : δ
+AutomataFinitoDeterminista o-- "0..1" Estado : q0
+AutomataFinitoDeterminista o-- "0..*" Estado : F
+
+AutomataFinitoDeterminista +-- Constructor
+Constructor +-- DefinicionTransicion
+Constructor ..> AutomataFinitoDeterminista : construye
+
+FuncionTransicion *-- "0..*" Transicion
+FuncionTransicion o-- "0..*" ClaveTransicion : delta (clave)
+Transicion --> "1" Estado : estadoOrigen
+Transicion --> "1" Estado : estadoDestino
+Transicion ..> ClaveTransicion : clave()
+ClaveTransicion --> "1" Estado
+
+ResultadoSimulacion *-- "0..*" PasoEjecucion
+ResultadoSimulacion --> "0..1" Estado : estadoFinal
+ResultadoSimulacion --> "1" MotivoRechazo
+PasoEjecucion --> "1" Estado : estadoOrigen
+PasoEjecucion --> "0..1" Estado : estadoDestino
+
+ResultadoValidacion *-- "0..*" ErrorValidacion
+ErrorValidacion --> "1" Severidad
+
+SimuladorAFD ..> AutomataFinitoDeterminista
+SimuladorAFD ..> ResultadoSimulacion : produce
+SimuladorAFD ..> PasoEjecucion : produce
+SimuladorAFD ..> MotivoRechazo
+
+ValidadorAutomata ..> AutomataFinitoDeterminista
+ValidadorAutomata ..> ResultadoValidacion : produce
+ValidadorAutomata ..> ErrorValidacion : produce
+ValidadorAutomata ..> ClaveTransicion
+
+ConstructorEjemplos ..> AutomataFinitoDeterminista : produce
+ConstructorEjemplos ..> Alfabeto
+
+DistribuidorEstados ..> Punto : produce
+
+note top of modelo
+  Todos los tipos del modelo son **inmutables**.
+  Estado define equals/hashCode **solo por nombre**:
+  por eso Set<Estado> impide nombres repetidos y
+  E04_NOMBRE_DUPLICADO se detecta sobre
+  estadosDeclarados (List), que sí los conserva.
+end note
+
+note bottom of logica
+  Las cuatro clases de lógica son **utilitarias**:
+  final, constructor privado y solo métodos estáticos.
+  No guardan estado entre llamadas.
+end note
+
+note as SinDependencias
+  **afd-core no depende de la interfaz gráfica.**
+  Ni una sola clase de este módulo importa
+  java.awt, javax.swing ni librería externa alguna:
+  sus únicos imports son java.util y el propio módulo.
+  Es lo que permite probarlo con 75 tests sin abrir
+  una ventana.
+
+  Punto es la única concesión a la vista, y ni
+  siquiera la conoce: es un par (x, y) que
+  DistribuidorEstados devuelve para que quien
+  dibuje decida qué hacer con él.
+end note
+
+SinDependencias .. logica
+@enduml
