@@ -37,6 +37,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.KeyboardFocusManager;
 import java.awt.Point;
+import java.awt.Shape;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
@@ -49,6 +50,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.NoninvertibleTransformException;
+import java.awt.geom.PathIterator;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.geom.RoundRectangle2D;
@@ -66,12 +68,16 @@ public class LienzoAutomata extends JPanel {
 
     private static final double ESCALA_MINIMA = 0.3;
     private static final double ESCALA_MAXIMA = 3.0;
+    private static final double ESCALA_AJUSTE_MAXIMA = 1.5;
     private static final double FACTOR_ZOOM = 1.1;
     private static final float GROSOR_NODO = 2f;
     private static final float GROSOR_ARISTA = 1.8f;
     private static final float GROSOR_ACTIVO = 3f;
     private static final float GROSOR_HALO = 6f;
-    private static final float GROSOR_RESULTADO = 4f;
+    private static final float GROSOR_VEREDICTO = 4f;
+    private static final float SEPARACION_VEREDICTO = 5f;
+    private static final double RADIO_DECORACION = 16;
+    private static final double PLANITUD_LIMITES = 0.5;
     private static final float GROSOR_SELECCION = 2f;
     private static final double OPACIDAD_FANTASMA = 0.40;
     private static final double UMBRAL_RETICULA = 0.5;
@@ -299,7 +305,7 @@ public class LienzoAutomata extends JPanel {
             return;
         }
 
-        double escala = Math.min(1.0, Math.min(
+        double escala = Math.min(ESCALA_AJUSTE_MAXIMA, Math.min(
                 disponibleAncho / limites.getWidth(),
                 disponibleAlto / limites.getHeight()));
         escala = Math.max(ESCALA_MINIMA, Math.min(ESCALA_MAXIMA, escala));
@@ -343,7 +349,7 @@ public class LienzoAutomata extends JPanel {
     }
 
     public void pintarLienzo(Graphics2D g2, int ancho, int alto, Tema tema) {
-        Objects.requireNonNull(g2, "El contexto grafico no puede ser nulo");
+        Objects.requireNonNull(g2, "El contexto gráfico no puede ser nulo");
         Medidas.calidad(g2);
 
         g2.setColor(tema.lienzoFondo());
@@ -420,47 +426,62 @@ public class LienzoAutomata extends JPanel {
         for (NodoGrafico nodo : nodos) {
             boolean activo = nodo == nodoActivo;
             boolean marcado = nodo == nodoResultado && resultadoAceptada != null;
-            Color colorBorde = colorDelNodo(nodo, activo, marcado, tema);
 
-            if (activo) {
+            // El halo naranja cede su sitio al anillo de veredicto: dos aros concéntricos
+            // alrededor del mismo nodo se leen como ruido.
+            if (activo && !marcado) {
                 g2.setColor(Tema.conAlfa(Tema.ACTIVO, 0.45));
                 g2.setStroke(new BasicStroke(GROSOR_HALO));
-                double radioHalo = nodo.radio() + GROSOR_HALO / 2;
-                g2.draw(new Ellipse2D.Double(nodo.x() - radioHalo, nodo.y() - radioHalo,
-                        radioHalo * 2, radioHalo * 2));
+                g2.draw(anillo(nodo, nodo.radio() + GROSOR_HALO / 2));
             }
 
             g2.setColor(tema.estadoRelleno());
             g2.fill(nodo.circulo());
 
-            g2.setColor(colorBorde);
-            g2.setStroke(new BasicStroke(marcado ? GROSOR_RESULTADO : GROSOR_NODO));
+            g2.setColor(activo ? Tema.ACTIVO : colorPropio(nodo, tema));
+            g2.setStroke(new BasicStroke(GROSOR_NODO));
             g2.draw(nodo.circulo());
 
+            if (marcado) {
+                g2.setColor(resultadoAceptada ? Tema.ACEPTADA : Tema.RECHAZADA);
+                g2.setStroke(new BasicStroke(GROSOR_VEREDICTO));
+                g2.draw(anillo(nodo, radioVeredicto(nodo)));
+            }
+
             if (nodo.estado().esAceptacion()) {
-                g2.setColor(marcado || activo ? colorBorde : Tema.ACEPTACION);
+                g2.setColor(Tema.ACEPTACION);
                 g2.setStroke(new BasicStroke(GROSOR_NODO));
                 g2.draw(nodo.circuloInterno());
             }
 
             if (nodo.estado().esInicial()) {
+                double desplazamiento = desplazamientoFlechaInicial(nodo);
                 g2.setColor(Tema.INICIAL);
                 g2.setStroke(new BasicStroke(GROSOR_NODO, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                g2.draw(CalculadoraGeometria.lineaEstadoInicial(nodo));
-                g2.fill(CalculadoraGeometria.puntaEstadoInicial(nodo));
+                g2.draw(CalculadoraGeometria.lineaEstadoInicial(nodo, desplazamiento));
+                g2.fill(CalculadoraGeometria.puntaEstadoInicial(nodo, desplazamiento));
             }
 
-            pintarNombre(g2, nodo, activo || marcado ? colorBorde : tema.estadoBorde());
+            pintarNombre(g2, nodo, activo ? Tema.ACTIVO : tema.estadoBorde());
         }
     }
 
-    private Color colorDelNodo(NodoGrafico nodo, boolean activo, boolean marcado, Tema tema) {
-        if (marcado) {
-            return resultadoAceptada ? Tema.ACEPTADA : Tema.RECHAZADA;
-        }
-        if (activo) {
-            return Tema.ACTIVO;
-        }
+    private static double radioVeredicto(NodoGrafico nodo) {
+        return nodo.radio() + SEPARACION_VEREDICTO + GROSOR_VEREDICTO / 2;
+    }
+
+    private double desplazamientoFlechaInicial(NodoGrafico nodo) {
+        boolean marcado = nodo == nodoResultado && resultadoAceptada != null;
+        return marcado
+                ? radioVeredicto(nodo) + GROSOR_VEREDICTO / 2 + SEPARACION_VEREDICTO - nodo.radio()
+                : 0;
+    }
+
+    private static Ellipse2D.Double anillo(NodoGrafico nodo, double radio) {
+        return new Ellipse2D.Double(nodo.x() - radio, nodo.y() - radio, radio * 2, radio * 2);
+    }
+
+    private static Color colorPropio(NodoGrafico nodo, Tema tema) {
         return nodo.estado().esAceptacion() ? Tema.ACEPTACION : tema.estadoBorde();
     }
 
@@ -506,11 +527,14 @@ public class LienzoAutomata extends JPanel {
         if (nodo == null) {
             return;
         }
-        double radio = nodo.radio() + 6;
+        boolean conVeredicto = nodo == nodoResultado && resultadoAceptada != null;
+        double radio = conVeredicto
+                ? radioVeredicto(nodo) + GROSOR_VEREDICTO
+                : nodo.radio() + 6;
         g2.setColor(Tema.SELECCION);
         g2.setStroke(new BasicStroke(GROSOR_SELECCION, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND,
                 1f, new float[] {6f, 5f}, faseSeleccion));
-        g2.draw(new Ellipse2D.Double(nodo.x() - radio, nodo.y() - radio, radio * 2, radio * 2));
+        g2.draw(anillo(nodo, radio));
     }
 
     private void pintarFantasma(Graphics2D g2, Tema tema) {
@@ -582,17 +606,45 @@ public class LienzoAutomata extends JPanel {
     private Rectangle2D calcularLimites() {
         Rectangle2D limites = null;
         for (NodoGrafico nodo : nodos) {
-            limites = unir(limites, nodo.circulo().getBounds2D());
+            limites = unir(limites, anillo(nodo, nodo.radio() + RADIO_DECORACION).getBounds2D());
             if (nodo.estado().esInicial()) {
-                limites = unir(limites, CalculadoraGeometria.lineaEstadoInicial(nodo).getBounds2D());
+                limites = unir(limites, CalculadoraGeometria
+                        .lineaEstadoInicial(nodo, desplazamientoFlechaInicial(nodo)).getBounds2D());
             }
         }
         for (AristaGrafica arista : aristas) {
-            limites = unir(limites, arista.forma().getBounds2D());
-            limites = unir(limites, arista.punta().getBounds2D());
-            limites = unir(limites, rectanguloEtiqueta(arista, TipografiaApp.MONO));
+            limites = unir(limites, limitesAjustados(arista.forma()));
+            limites = unir(limites, limitesAjustados(arista.punta()));
+            // El marco de la etiqueta lleva relleno invisible: para encuadrar solo cuenta
+            // la extensión real del texto.
+            limites = unir(limites, sinRelleno(rectanguloEtiqueta(arista, TipografiaApp.MONO)));
         }
         return limites;
+    }
+
+    private static Rectangle2D sinRelleno(Rectangle2D marco) {
+        return new Rectangle2D.Double(
+                marco.getX() + PADDING_ETIQUETA, marco.getY() + PADDING_ETIQUETA,
+                Math.max(0, marco.getWidth() - PADDING_ETIQUETA * 2),
+                Math.max(0, marco.getHeight() - PADDING_ETIQUETA * 2));
+    }
+
+    /**
+     * getBounds2D() de una curva devuelve la caja de sus puntos de control, mucho mayor que el
+     * trazo real; aplanar la trayectoria da los límites que de verdad se ven.
+     */
+    private static Rectangle2D limitesAjustados(Shape forma) {
+        PathIterator iterador = forma.getPathIterator(null, PLANITUD_LIMITES);
+        double[] coordenadas = new double[6];
+        Rectangle2D limites = null;
+        while (!iterador.isDone()) {
+            if (iterador.currentSegment(coordenadas) != PathIterator.SEG_CLOSE) {
+                limites = unir(limites,
+                        new Rectangle2D.Double(coordenadas[0], coordenadas[1], 0, 0));
+            }
+            iterador.next();
+        }
+        return limites == null ? forma.getBounds2D() : limites;
     }
 
     private static Rectangle2D unir(Rectangle2D acumulado, Rectangle2D nuevo) {

@@ -86,14 +86,17 @@ public class DeslizadorVelocidad extends JSlider implements Tema.Sensible {
 
                 double avance = thumbRect.getCenterX() - pista.x;
                 if (avance > 0) {
-                    g2.setColor(Tema.mezclar(Tema.ACTIVO, tema.panelBorde(), 0.85));
+                    g2.setColor(slider.isEnabled()
+                            ? Tema.mezclar(Tema.ACTIVO, tema.panelBorde(), 0.85)
+                            : tema.desactivado(Tema.ACTIVO));
                     g2.fill(new RoundRectangle2D.Double(pista.x, y, avance, GROSOR_PISTA,
                             GROSOR_PISTA, GROSOR_PISTA));
                 }
 
                 g2.setFont(TipografiaApp.ETIQUETA);
                 FontMetrics metrica = g2.getFontMetrics();
-                g2.setColor(tema.textoSecundario());
+                g2.setColor(slider.isEnabled()
+                        ? tema.textoSecundario() : tema.desactivado(tema.textoSecundario()));
                 String texto = slider.getValue() + " ms";
                 g2.drawString(texto, pista.x + (pista.width - metrica.stringWidth(texto)) / 2f,
                         pista.y + pista.height + metrica.getAscent() - 2);
@@ -112,7 +115,7 @@ public class DeslizadorVelocidad extends JSlider implements Tema.Sensible {
                         thumbRect.getCenterX() - DIAMETRO_PULGAR / 2.0,
                         thumbRect.getCenterY() - DIAMETRO_PULGAR / 2.0,
                         DIAMETRO_PULGAR, DIAMETRO_PULGAR);
-                g2.setColor(Tema.ACTIVO);
+                g2.setColor(slider.isEnabled() ? Tema.ACTIVO : tema.desactivado(Tema.ACTIVO));
                 g2.fill(pulgar);
                 g2.setStroke(new BasicStroke(2f));
                 g2.setColor(tema.panelElevado());

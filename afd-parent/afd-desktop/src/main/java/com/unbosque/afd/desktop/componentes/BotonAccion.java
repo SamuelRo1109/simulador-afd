@@ -88,28 +88,28 @@ public class BotonAccion extends JButton implements Tema.Sensible {
 
             Color texto;
             if (estilo == Estilo.PRIMARIO) {
-                Color relleno = activo ? Tema.ACTIVO : Tema.mezclar(Tema.ACTIVO, tema.panelFondo(), 0.35);
+                Color relleno = activo ? Tema.ACTIVO : tema.superficieDesactivada();
                 if (sobrevolado && activo) {
                     relleno = Tema.aclarar(relleno, 0.12);
                 }
                 g2.setColor(relleno);
                 g2.fill(marco);
-                texto = activo ? Tema.TINTA_SOBRE_ACENTO : tema.textoSecundario();
+                texto = activo ? Tema.TINTA_SOBRE_ACENTO : tema.desactivado(tema.textoSecundario());
             } else if (estilo == Estilo.SECUNDARIO) {
                 if (sobrevolado && activo) {
                     g2.setColor(tema.sobrevuelo());
                     g2.fill(marco);
                 }
                 g2.setStroke(new BasicStroke(1f));
-                g2.setColor(activo ? tema.panelBorde() : Tema.mezclar(tema.panelBorde(), tema.panelFondo(), 0.5));
+                g2.setColor(activo ? tema.panelBorde() : tema.superficieDesactivada());
                 g2.draw(marco);
-                texto = activo ? tema.textoPrimario() : tema.textoSecundario();
+                texto = activo ? tema.textoPrimario() : tema.desactivado(tema.textoSecundario());
             } else {
                 if (sobrevolado && activo) {
                     g2.setColor(tema.sobrevuelo());
                     g2.fill(marco);
                 }
-                texto = activo ? tema.textoSecundario() : Tema.mezclar(tema.textoSecundario(), tema.panelFondo(), 0.5);
+                texto = activo ? tema.textoSecundario() : tema.desactivado(tema.textoSecundario());
             }
 
             g2.setFont(getFont());

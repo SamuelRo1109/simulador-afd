@@ -163,6 +163,26 @@ public final class Tema {
         return mezclar(LUZ, color, cantidad);
     }
 
+    public Color grisNeutro() {
+        int nivel = luminancia(textoSecundario);
+        return new Color(nivel, nivel, nivel);
+    }
+
+    public Color desactivado(Color color) {
+        int nivel = (int) Math.round(luminancia(color) * 0.45 + luminancia(textoSecundario) * 0.55);
+        int acotado = Math.max(0, Math.min(255, nivel));
+        return new Color(acotado, acotado, acotado);
+    }
+
+    public Color superficieDesactivada() {
+        return mezclar(grisNeutro(), panelFondo, oscuro ? 0.12 : 0.18);
+    }
+
+    private static int luminancia(Color color) {
+        return (int) Math.round(
+                0.299 * color.getRed() + 0.587 * color.getGreen() + 0.114 * color.getBlue());
+    }
+
     public Color celdaSinDefinir() {
         return mezclar(RECHAZADA, panelElevado, 0.15);
     }

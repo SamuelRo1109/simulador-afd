@@ -102,7 +102,7 @@ public class BotonIcono extends JButton implements Tema.Sensible {
 
             Color color;
             if (!isEnabled()) {
-                color = Tema.mezclar(tema.textoSecundario(), tema.panelFondo(), 0.45);
+                color = tema.desactivado(tema.textoSecundario());
             } else if (destacado) {
                 color = Tema.ACTIVO;
             } else if (sobrevolado) {

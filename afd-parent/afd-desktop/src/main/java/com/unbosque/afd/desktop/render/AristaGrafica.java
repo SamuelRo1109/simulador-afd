@@ -25,7 +25,7 @@ public final class AristaGrafica {
                          Point2D puntoEtiqueta) {
         this.nodoOrigen = Objects.requireNonNull(nodoOrigen, "El nodo origen no puede ser nulo");
         this.nodoDestino = Objects.requireNonNull(nodoDestino, "El nodo destino no puede ser nulo");
-        this.simbolos = List.copyOf(Objects.requireNonNull(simbolos, "Los simbolos no pueden ser nulos"));
+        this.simbolos = List.copyOf(Objects.requireNonNull(simbolos, "Los símbolos no pueden ser nulos"));
         this.tipo = Objects.requireNonNull(tipo, "El tipo de arista no puede ser nulo");
         this.forma = Objects.requireNonNull(forma, "La forma no puede ser nula");
         this.punta = Objects.requireNonNull(punta, "La punta de flecha no puede ser nula");

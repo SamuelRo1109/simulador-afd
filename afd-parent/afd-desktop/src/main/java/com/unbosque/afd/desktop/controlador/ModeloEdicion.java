@@ -234,7 +234,7 @@ public final class ModeloEdicion {
     }
 
     public void cargarDesde(AutomataFinitoDeterminista automata) {
-        Objects.requireNonNull(automata, "El automata no puede ser nulo");
+        Objects.requireNonNull(automata, "El autómata no puede ser nulo");
         limpiar();
         nombre = automata.nombre().isEmpty() ? nombre : automata.nombre();
         for (char simbolo : automata.alfabeto().simbolos()) {

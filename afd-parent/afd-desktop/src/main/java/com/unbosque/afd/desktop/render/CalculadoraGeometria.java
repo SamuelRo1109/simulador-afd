@@ -39,7 +39,7 @@ public final class CalculadoraGeometria {
 
     public static List<AristaGrafica> calcularAristas(AutomataFinitoDeterminista automata,
                                                      List<NodoGrafico> nodos) {
-        Objects.requireNonNull(automata, "El automata no puede ser nulo");
+        Objects.requireNonNull(automata, "El autómata no puede ser nulo");
         Objects.requireNonNull(nodos, "Los nodos no pueden ser nulos");
 
         Map<String, NodoGrafico> nodosPorNombre = new LinkedHashMap<>();
@@ -184,14 +184,23 @@ public final class CalculadoraGeometria {
     }
 
     public static Line2D lineaEstadoInicial(NodoGrafico nodo) {
+        return lineaEstadoInicial(nodo, 0);
+    }
+
+    public static Line2D lineaEstadoInicial(NodoGrafico nodo, double desplazamiento) {
         Objects.requireNonNull(nodo, "El nodo no puede ser nulo");
-        double borde = nodo.x() - nodo.radio();
+        double borde = nodo.x() - nodo.radio() - desplazamiento;
         return new Line2D.Double(borde - LARGO_FLECHA_INICIAL, nodo.y(), borde, nodo.y());
     }
 
     public static Shape puntaEstadoInicial(NodoGrafico nodo) {
+        return puntaEstadoInicial(nodo, 0);
+    }
+
+    public static Shape puntaEstadoInicial(NodoGrafico nodo, double desplazamiento) {
         Objects.requireNonNull(nodo, "El nodo no puede ser nulo");
-        return puntaDeFlecha(new Point2D.Double(nodo.x() - nodo.radio(), nodo.y()), 0);
+        return puntaDeFlecha(
+                new Point2D.Double(nodo.x() - nodo.radio() - desplazamiento, nodo.y()), 0);
     }
 
     private static double[] direccionOpuestaAlCentroide(NodoGrafico nodo, List<NodoGrafico> nodos) {
@@ -212,6 +221,11 @@ public final class CalculadoraGeometria {
         double dy = nodo.y() - sumaY / cantidad;
         double norma = Math.hypot(dx, dy);
         if (norma < EPSILON) {
+            return new double[] {0, -1};
+        }
+        // El bucle de un estado inicial no puede caer sobre su flecha de entrada, que llega
+        // siempre por la izquierda: en ese caso lo mandamos hacia arriba.
+        if (nodo.estado().esInicial() && dx < 0) {
             return new double[] {0, -1};
         }
         return new double[] {dx / norma, dy / norma};

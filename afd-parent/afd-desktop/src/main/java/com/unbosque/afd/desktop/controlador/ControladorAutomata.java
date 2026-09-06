@@ -1,6 +1,5 @@
 package com.unbosque.afd.desktop.controlador;
 
-import com.unbosque.afd.core.logica.DistribuidorEstados;
 import com.unbosque.afd.core.logica.ValidadorAutomata;
 import com.unbosque.afd.core.modelo.AutomataFinitoDeterminista;
 import com.unbosque.afd.core.modelo.ErrorValidacion;
@@ -11,6 +10,7 @@ import com.unbosque.afd.desktop.controlador.comandos.Comando;
 import com.unbosque.afd.desktop.controlador.comandos.ComandoDirecto;
 import com.unbosque.afd.desktop.controlador.comandos.ComandoInstantanea;
 import com.unbosque.afd.desktop.controlador.comandos.PilaComandos;
+import com.unbosque.afd.desktop.render.DistribuidorLienzo;
 
 import java.awt.Dimension;
 import java.util.ArrayList;
@@ -457,7 +457,7 @@ public final class ControladorAutomata {
     private List<Punto> distribucionDeReserva(int cantidad) {
         double ancho = tamanoLienzo.width;
         double alto = tamanoLienzo.height;
-        return DistribuidorEstados.circular(Math.max(cantidad, 1), ancho / 2, alto / 2,
+        return DistribuidorLienzo.distribuir(Math.max(cantidad, 1), ancho / 2, alto / 2,
                 Math.min(ancho, alto) * RADIO_DISTRIBUCION);
     }
 

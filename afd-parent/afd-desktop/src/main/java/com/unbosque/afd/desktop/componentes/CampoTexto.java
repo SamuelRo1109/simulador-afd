@@ -56,7 +56,7 @@ public class CampoTexto extends JTextField implements Tema.Sensible {
         setForeground(tema.textoPrimario());
         setSelectionColor(Tema.mezclar(Tema.ACTIVO, tema.panelFondo(), 0.35));
         setSelectedTextColor(tema.textoPrimario());
-        setDisabledTextColor(tema.textoSecundario());
+        setDisabledTextColor(tema.desactivado(tema.textoSecundario()));
         repaint();
     }
 
@@ -81,11 +81,13 @@ public class CampoTexto extends JTextField implements Tema.Sensible {
                     0.75, 0.75, getWidth() - 1.5, getHeight() - 1.5,
                     Medidas.RADIO_BOTON, Medidas.RADIO_BOTON);
 
-            g2.setColor(isEnabled() ? tema.panelFondo() : Tema.mezclar(tema.panelFondo(), tema.panelElevado(), 0.5));
+            g2.setColor(isEnabled() ? tema.panelFondo() : tema.superficieDesactivada());
             g2.fill(marco);
 
             Color borde;
-            if (colorAviso != null) {
+            if (!isEnabled()) {
+                borde = tema.superficieDesactivada();
+            } else if (colorAviso != null) {
                 borde = colorAviso;
             } else if (isFocusOwner()) {
                 borde = Tema.ACTIVO;

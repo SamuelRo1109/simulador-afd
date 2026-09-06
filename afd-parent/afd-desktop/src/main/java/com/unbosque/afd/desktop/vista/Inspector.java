@@ -144,12 +144,14 @@ public class Inspector extends JPanel implements Tema.Sensible {
 
         tarjeta.add(lineaMono("M = (Q, Σ, δ, q₀, F)", Tema.ACTIVO));
         tarjeta.add(Box.createVerticalStrut(Medidas.paso(2)));
-        tarjeta.add(lineaDato("Q", controlador.modelo().estados().size() + " estados"));
-        tarjeta.add(lineaDato("Σ", controlador.modelo().simbolos().size() + " símbolos"));
-        tarjeta.add(lineaDato("δ", contarTransiciones() + " transiciones definidas"));
+        tarjeta.add(lineaDato("Q", plural(controlador.modelo().estados().size(), "estado", "estados")));
+        tarjeta.add(lineaDato("Σ", plural(controlador.modelo().simbolos().size(), "símbolo", "símbolos")));
+        tarjeta.add(lineaDato("δ", plural(contarTransiciones(),
+                "transición definida", "transiciones definidas")));
         tarjeta.add(lineaDato("q₀", controlador.modelo().estadoInicial() == null
                 ? "sin definir" : controlador.modelo().estadoInicial()));
-        tarjeta.add(lineaDato("F", contarAceptacion() + " de aceptación"));
+        tarjeta.add(lineaDato("F", plural(contarAceptacion(),
+                "estado de aceptación", "estados de aceptación")));
         agregar(tarjeta);
 
         PanelTarjeta alfabeto = new PanelTarjeta("Alfabeto Σ");
@@ -359,6 +361,10 @@ public class Inspector extends JPanel implements Tema.Sensible {
         String culpable = controlador.estadoCulpable(hallazgo).orElse(null);
         return new TarjetaHallazgo(hallazgo, culpable != null,
                 culpable == null ? null : () -> controlador.seleccionar(Seleccion.deEstado(culpable)));
+    }
+
+    private static String plural(int cantidad, String singular, String plural) {
+        return cantidad + " " + (cantidad == 1 ? singular : plural);
     }
 
     private int contarTransiciones() {

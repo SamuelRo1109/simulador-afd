@@ -104,6 +104,7 @@ public class CasillaVerificacion extends JComponent implements Tema.Sensible {
             Tema tema = Tema.actual();
             double y = (getHeight() - LADO) / 2.0;
             RoundRectangle2D.Double caja = new RoundRectangle2D.Double(0.5, y, LADO, LADO, 4, 4);
+            Color acento = isEnabled() ? this.acento : tema.desactivado(this.acento);
 
             if (marcada) {
                 g2.setColor(acento);
@@ -125,7 +126,7 @@ public class CasillaVerificacion extends JComponent implements Tema.Sensible {
 
             g2.setFont(TipografiaApp.CUERPO);
             FontMetrics metrica = g2.getFontMetrics();
-            g2.setColor(isEnabled() ? tema.textoPrimario() : tema.textoSecundario());
+            g2.setColor(isEnabled() ? tema.textoPrimario() : tema.desactivado(tema.textoSecundario()));
             g2.drawString(etiqueta, LADO + Medidas.paso(2),
                     (getHeight() + metrica.getAscent() - metrica.getDescent()) / 2f);
         } finally {
