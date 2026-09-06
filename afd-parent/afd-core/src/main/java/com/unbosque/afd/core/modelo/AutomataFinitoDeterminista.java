@@ -40,7 +40,7 @@ public final class AutomataFinitoDeterminista {
     }
 
     public static Constructor constructorDesde(AutomataFinitoDeterminista automata) {
-        Objects.requireNonNull(automata, "El automata origen no puede ser nulo");
+        Objects.requireNonNull(automata, "El autómata origen no puede ser nulo");
         Constructor constructor = new Constructor()
                 .nombre(automata.nombre())
                 .alfabeto(automata.alfabeto())
@@ -160,7 +160,7 @@ public final class AutomataFinitoDeterminista {
         }
 
         public Constructor agregarTransicion(Transicion transicion) {
-            Objects.requireNonNull(transicion, "La transicion no puede ser nula");
+            Objects.requireNonNull(transicion, "La transición no puede ser nula");
             definiciones.add(new DefinicionTransicion(
                     transicion.estadoOrigen().nombre(), transicion.simbolo(), transicion.estadoDestino().nombre()));
             return this;
@@ -186,7 +186,7 @@ public final class AutomataFinitoDeterminista {
         }
 
         public Constructor agregarEstadoAceptacion(String nombreEstado) {
-            nombresAceptacion.add(Objects.requireNonNull(nombreEstado, "El estado de aceptacion no puede ser nulo"));
+            nombresAceptacion.add(Objects.requireNonNull(nombreEstado, "El estado de aceptación no puede ser nulo"));
             return this;
         }
 

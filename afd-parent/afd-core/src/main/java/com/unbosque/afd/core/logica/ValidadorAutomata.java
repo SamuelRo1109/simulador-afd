@@ -37,7 +37,7 @@ public final class ValidadorAutomata {
     }
 
     public static ResultadoValidacion validar(AutomataFinitoDeterminista automata) {
-        Objects.requireNonNull(automata, "El automata no puede ser nulo");
+        Objects.requireNonNull(automata, "El autómata no puede ser nulo");
         List<ErrorValidacion> hallazgos = new ArrayList<>();
 
         validarEstadoInicial(automata, hallazgos);
@@ -52,7 +52,7 @@ public final class ValidadorAutomata {
     }
 
     public static AutomataFinitoDeterminista completarConEstadoTrampa(AutomataFinitoDeterminista automata) {
-        Objects.requireNonNull(automata, "El automata no puede ser nulo");
+        Objects.requireNonNull(automata, "El autómata no puede ser nulo");
 
         Alfabeto alfabeto = automata.alfabeto();
         List<ClaveTransicion> faltantes = new ArrayList<>();
@@ -96,10 +96,10 @@ public final class ValidadorAutomata {
         List<Estado> iniciales = automata.estados().stream().filter(Estado::esInicial).toList();
         if (iniciales.isEmpty()) {
             hallazgos.add(ErrorValidacion.error(CODIGO_SIN_ESTADO_INICIAL,
-                    "El automata debe tener exactamente un estado inicial y no tiene ninguno"));
+                    "El autómata debe tener exactamente un estado inicial y no tiene ninguno"));
         } else if (iniciales.size() > 1) {
             hallazgos.add(ErrorValidacion.error(CODIGO_VARIOS_ESTADOS_INICIALES,
-                    "El automata debe tener exactamente un estado inicial y tiene " + iniciales.size()
+                    "El autómata debe tener exactamente un estado inicial y tiene " + iniciales.size()
                             + ": " + nombres(iniciales)));
         } else if (!automata.contieneEstado(automata.estadoInicial())) {
             hallazgos.add(ErrorValidacion.error(CODIGO_SIN_ESTADO_INICIAL,
@@ -114,18 +114,18 @@ public final class ValidadorAutomata {
             String nombre = estado.nombre();
             if (nombre.isBlank() && reportados.add("<vacio>")) {
                 hallazgos.add(ErrorValidacion.error(CODIGO_NOMBRE_VACIO,
-                        "Existe al menos un estado con nombre vacio"));
+                        "Existe al menos un estado con nombre vacío"));
             }
             if (!vistos.add(nombre) && reportados.add(nombre)) {
                 hallazgos.add(ErrorValidacion.error(CODIGO_NOMBRE_DUPLICADO,
-                        "El nombre de estado '" + nombre + "' esta duplicado"));
+                        "El nombre de estado '" + nombre + "' está duplicado"));
             }
         }
     }
 
     private static void validarAlfabeto(AutomataFinitoDeterminista automata, List<ErrorValidacion> hallazgos) {
         if (automata.alfabeto().estaVacio()) {
-            hallazgos.add(ErrorValidacion.error(CODIGO_ALFABETO_VACIO, "El alfabeto no puede estar vacio"));
+            hallazgos.add(ErrorValidacion.error(CODIGO_ALFABETO_VACIO, "El alfabeto no puede estar vacío"));
         }
     }
 
@@ -151,7 +151,7 @@ public final class ValidadorAutomata {
             for (char simbolo : automata.alfabeto().simbolos()) {
                 if (!automata.funcionTransicion().estaDefinida(estado, simbolo)) {
                     hallazgos.add(ErrorValidacion.error(CODIGO_TRANSICION_FALTANTE,
-                            "No hay transicion definida para (" + estado.nombre() + ", " + simbolo + ")"));
+                            "No hay transición definida para (" + estado.nombre() + ", " + simbolo + ")"));
                 }
             }
         }
@@ -183,14 +183,14 @@ public final class ValidadorAutomata {
         for (Estado estado : automata.estadosAceptacion()) {
             if (!alcanzables.contains(estado)) {
                 hallazgos.add(ErrorValidacion.advertencia(CODIGO_ACEPTACION_INALCANZABLE,
-                        "El estado de aceptacion '" + estado.nombre()
+                        "El estado de aceptación '" + estado.nombre()
                                 + "' no es alcanzable desde el estado inicial"));
             }
         }
     }
 
     public static Set<Estado> alcanzables(AutomataFinitoDeterminista automata) {
-        Objects.requireNonNull(automata, "El automata no puede ser nulo");
+        Objects.requireNonNull(automata, "El autómata no puede ser nulo");
         Set<Estado> visitados = new LinkedHashSet<>();
         if (!automata.tieneEstadoInicial()) {
             return visitados;

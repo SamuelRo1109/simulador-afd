@@ -34,7 +34,7 @@ class ValidadorAutomataTest {
     }
 
     @Test
-    @DisplayName("Una delta incompleta invalida el AFD y completarConEstadoTrampa lo vuelve valido")
+    @DisplayName("Una delta incompleta invalida el AFD y completarConEstadoTrampa lo vuelve válido")
     void completarConEstadoTrampaVuelveValidoElAutomata() {
         AutomataFinitoDeterminista original = deltaIncompleta();
 
@@ -59,7 +59,7 @@ class ValidadorAutomataTest {
     }
 
     @Test
-    @DisplayName("completarConEstadoTrampa no muta el automata original")
+    @DisplayName("completarConEstadoTrampa no muta el autómata original")
     void completarNoMutaElOriginal() {
         AutomataFinitoDeterminista original = deltaIncompleta();
         int transicionesAntes = original.funcionTransicion().cantidad();
@@ -115,7 +115,7 @@ class ValidadorAutomataTest {
     }
 
     @Test
-    @DisplayName("Un estado de aceptacion inalcanzable genera las dos advertencias")
+    @DisplayName("Un estado de aceptación inalcanzable genera las dos advertencias")
     void estadoDeAceptacionInalcanzable() {
         AutomataFinitoDeterminista automata = AutomataFinitoDeterminista.constructor()
                 .alfabeto("0", "1")
@@ -160,7 +160,7 @@ class ValidadorAutomataTest {
     }
 
     @Test
-    @DisplayName("Se detectan alfabeto vacio, no determinismo, destinos inexistentes y nombres invalidos")
+    @DisplayName("Se detectan alfabeto vacío, no determinismo, destinos inexistentes y nombres inválidos")
     void erroresEstructurales() {
         AutomataFinitoDeterminista automata = AutomataFinitoDeterminista.constructor()
                 .agregarEstado("q0", true, true)

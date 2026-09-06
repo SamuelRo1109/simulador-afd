@@ -19,7 +19,7 @@ public final class FuncionTransicion {
         List<Transicion> copia = new ArrayList<>();
         Map<ClaveTransicion, Estado> mapa = new LinkedHashMap<>();
         for (Transicion transicion : transiciones) {
-            Objects.requireNonNull(transicion, "Una transicion no puede ser nula");
+            Objects.requireNonNull(transicion, "Una transición no puede ser nula");
             copia.add(transicion);
             mapa.putIfAbsent(transicion.clave(), transicion.estadoDestino());
         }

@@ -18,7 +18,7 @@ class ConstructorEjemplosTest {
     private static void assertAcepta(AutomataFinitoDeterminista automata, String cadena) {
         ResultadoSimulacion resultado = SimuladorAFD.simular(automata, cadena);
         assertTrue(resultado.aceptada(),
-                () -> automata.nombre() + " deberia aceptar \"" + cadena + "\" y la rechazo por "
+                () -> automata.nombre() + " debería aceptar \"" + cadena + "\" y la rechazó por "
                         + resultado.motivoRechazo());
         assertEquals(MotivoRechazo.NINGUNO, resultado.motivoRechazo());
     }
@@ -26,16 +26,16 @@ class ConstructorEjemplosTest {
     private static void assertRechaza(AutomataFinitoDeterminista automata, String cadena) {
         ResultadoSimulacion resultado = SimuladorAFD.simular(automata, cadena);
         assertFalse(resultado.aceptada(),
-                () -> automata.nombre() + " deberia rechazar \"" + cadena + "\"");
+                () -> automata.nombre() + " debería rechazar \"" + cadena + "\"");
         assertEquals(MotivoRechazo.ESTADO_NO_ACEPTACION, resultado.motivoRechazo());
     }
 
     @Test
-    @DisplayName("Los cuatro ejemplos son automatas validos")
+    @DisplayName("Los cuatro ejemplos son autómatas válidos")
     void losEjemplosSonValidos() {
         for (AutomataFinitoDeterminista automata : ConstructorEjemplos.todos()) {
             assertTrue(ValidadorAutomata.validar(automata).esValido(),
-                    () -> "El ejemplo " + automata.nombre() + " deberia ser valido");
+                    () -> "El ejemplo " + automata.nombre() + " debería ser válido");
             assertEquals(2, automata.alfabeto().tamano());
             assertTrue(automata.alfabeto().contiene('0') && automata.alfabeto().contiene('1'));
         }

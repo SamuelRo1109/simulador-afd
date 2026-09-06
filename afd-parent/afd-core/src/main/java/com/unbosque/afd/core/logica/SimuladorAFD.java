@@ -17,7 +17,7 @@ public final class SimuladorAFD {
     }
 
     public static ResultadoSimulacion simular(AutomataFinitoDeterminista automata, String cadena) {
-        Objects.requireNonNull(automata, "El automata no puede ser nulo");
+        Objects.requireNonNull(automata, "El autómata no puede ser nulo");
         Objects.requireNonNull(cadena, "La cadena no puede ser nula");
 
         List<PasoEjecucion> pasos = new ArrayList<>(cadena.length());

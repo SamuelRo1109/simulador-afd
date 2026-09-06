@@ -31,7 +31,7 @@ class SimuladorAFDTest {
     }
 
     @ParameterizedTest
-    @DisplayName("La traza tiene exactamente cadena.length() pasos cuando la simulacion no falla")
+    @DisplayName("La traza tiene exactamente cadena.length() pasos cuando la simulación no falla")
     @ValueSource(strings = {"", "0", "01", "1010", "000111", "1001001011"})
     void trazaTieneUnPasoPorSimbolo(String cadena) {
         for (AutomataFinitoDeterminista automata : ConstructorEjemplos.todos()) {
@@ -40,12 +40,12 @@ class SimuladorAFDTest {
             assertEquals(cadena.length(), resultado.pasos().size(),
                     () -> "Traza incorrecta para " + automata.nombre() + " con \"" + cadena + "\"");
             assertTrue(resultado.pasos().stream().noneMatch(PasoEjecucion::fallido),
-                    () -> "Ningun paso deberia fallar en " + automata.nombre());
+                    () -> "Ningún paso debería fallar en " + automata.nombre());
         }
     }
 
     @Test
-    @DisplayName("La traza es coherente: indices, encadenamiento de estados y particion de la cadena")
+    @DisplayName("La traza es coherente: índices, encadenamiento de estados y partición de la cadena")
     void trazaCoherente() {
         AutomataFinitoDeterminista automata = ConstructorEjemplos.terminaEnCero();
         String cadena = "10110";
@@ -71,7 +71,7 @@ class SimuladorAFDTest {
     }
 
     @Test
-    @DisplayName("La cadena vacia no genera pasos y se decide en el estado inicial")
+    @DisplayName("La cadena vacía no genera pasos y se decide en el estado inicial")
     void cadenaVaciaLambda() {
         ResultadoSimulacion aceptada = SimuladorAFD.simular(ConstructorEjemplos.cantidadParDeCeros(), "");
         assertTrue(aceptada.aceptada());
@@ -86,7 +86,7 @@ class SimuladorAFDTest {
     }
 
     @Test
-    @DisplayName("Un simbolo fuera del alfabeto corta la simulacion conservando los pasos recorridos")
+    @DisplayName("Un símbolo fuera del alfabeto corta la simulación conservando los pasos recorridos")
     void simboloFueraDelAlfabeto() {
         ResultadoSimulacion resultado = SimuladorAFD.simular(ConstructorEjemplos.terminaEnCero(), "10a0");
 
@@ -104,7 +104,7 @@ class SimuladorAFDTest {
     }
 
     @Test
-    @DisplayName("Una transicion no definida corta la simulacion conservando los pasos recorridos")
+    @DisplayName("Una transición no definida corta la simulación conservando los pasos recorridos")
     void transicionNoDefinida() {
         ResultadoSimulacion resultado = SimuladorAFD.simular(deltaIncompleta(), "011");
 

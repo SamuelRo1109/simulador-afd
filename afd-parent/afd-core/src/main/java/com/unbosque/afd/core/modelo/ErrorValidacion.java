@@ -6,7 +6,7 @@ public record ErrorValidacion(Severidad severidad, String codigo, String mensaje
 
     public ErrorValidacion {
         Objects.requireNonNull(severidad, "La severidad no puede ser nula");
-        Objects.requireNonNull(codigo, "El codigo no puede ser nulo");
+        Objects.requireNonNull(codigo, "El código no puede ser nulo");
         Objects.requireNonNull(mensaje, "El mensaje no puede ser nulo");
     }
 

@@ -17,17 +17,17 @@ public final class Alfabeto {
         Set<Character> acumulado = new LinkedHashSet<>();
         for (String simbolo : simbolos) {
             if (simbolo == null) {
-                throw new IllegalArgumentException("El alfabeto no admite simbolos nulos");
+                throw new IllegalArgumentException("El alfabeto no admite símbolos nulos");
             }
             if (simbolo.isEmpty()) {
-                throw new IllegalArgumentException("El alfabeto no admite cadenas vacias");
+                throw new IllegalArgumentException("El alfabeto no admite cadenas vacías");
             }
             if (simbolo.length() > 1) {
                 throw new IllegalArgumentException(
-                        "Cada simbolo debe tener exactamente un caracter: '" + simbolo + "'");
+                        "Cada símbolo debe tener exactamente un carácter: '" + simbolo + "'");
             }
             if (!acumulado.add(simbolo.charAt(0))) {
-                throw new IllegalArgumentException("Simbolo duplicado en el alfabeto: '" + simbolo + "'");
+                throw new IllegalArgumentException("Símbolo duplicado en el alfabeto: '" + simbolo + "'");
             }
         }
         this.simbolos = Collections.unmodifiableSet(acumulado);
